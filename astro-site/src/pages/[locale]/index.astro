@@ -1,0 +1,470 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { mediaSrc, postsByLocale, spotlightPosts } from '../../lib/content';
+import { normaliseLocale } from '../../i18n/config';
+import { t, tr } from '../../i18n';
+import PostCard from '../../components/PostCard.astro';
+import PillButton from '../../components/PillButton.astro';
+import Highlights from '../../components/home/Highlights.astro';
+import WhatMakesUnique from '../../components/home/WhatMakesUnique.astro';
+import GetErgSteps from '../../components/home/GetErgSteps.astro';
+import Autolykos from '../../components/home/Autolykos.astro';
+import Contribute from '../../components/home/Contribute.astro';
+import { SITE_TIME_ZONE } from '../../lib/dates';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+
+const featured = await spotlightPosts(loc, 6);
+const latestNews = (await postsByLocale(loc, 'news')).slice(0, 8);
+/**
+ * Production's partner order is editorial, not the CMS id or filename order:
+ * Flux, Alephium, Zelcore, Cardano, CCX, UTXO Alliance. Unknown entries sort last.
+ */
+const PARTNER_ORDER = ['Flux', 'Alephium', 'Zelcore', 'Cardano', 'CCX', 'UTXO Alliance'];
+const partners = (await getCollection('partners'))
+  .map((p) => p.data)
+  .sort((a, b) => {
+    const ai = PARTNER_ORDER.indexOf(a.name.trim());
+    const bi = PARTNER_ORDER.indexOf(b.name.trim());
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+/**
+ * Production's latest-news rows print "Jan 03" for the current year and
+ * "Nov 27, 2025" for older items.
+ */
+const yearOf = new Intl.DateTimeFormat('en-US', { year: 'numeric', timeZone: SITE_TIME_ZONE });
+const thisYear = yearOf.format(new Date());
+const monthDay = new Intl.DateTimeFormat(loc, {
+  month: 'short',
+  day: '2-digit',
+  timeZone: SITE_TIME_ZONE,
+});
+const monthDayYear = new Intl.DateTimeFormat(loc, {
+  month: 'short',
+  day: '2-digit',
+  year: 'numeric',
+  timeZone: SITE_TIME_ZONE,
+});
+const newsDate = (date?: Date) =>
+  date ? (yearOf.format(date) === thisYear ? monthDay : monthDayYear).format(date) : '';
+---
+
+<Base locale={loc} wide decor="home">
+  {/*
+    Hero. Production reserves the 9em header gap with a spacer, then insets a 1268x640
+    artwork into the 1300px measure and lays the copy over its top. The h1 is 72px at this
+    viewport and the paragraph is the 24px subtitle cut; measured at x=86, y=256.
+  */}
+  <section id="HomeHero" class="relative z-[1] mx-auto mt-0 w-full max-w-[1300px] p-4 md:mt-24">
+    <div class="relative md:min-h-[560px] lg:min-h-[640px]">
+      <div
+        class="pointer-events-none absolute -top-20 right-0 left-0 z-0 hidden h-[560px] w-full overflow-hidden md:block lg:-top-28 lg:h-[640px]"
+      >
+        <img
+          src="/assets/home/hero-poster-light.webp"
+          alt=""
+          width="1920"
+          height="1080"
+          fetchpriority="high"
+          decoding="async"
+          class="pointer-events-none h-full w-full object-contain"
+        />
+        <img
+          src="/assets/home/hero-poster-dark.webp"
+          alt=""
+          width="1920"
+          height="1080"
+          fetchpriority="high"
+          decoding="async"
+          class="pointer-events-none absolute inset-0 hidden h-full w-full object-contain dark:block"
+          aria-hidden="true"
+        />
+        <video
+          class="pointer-events-none absolute inset-0 h-full w-full object-contain"
+          width="1920"
+          height="1080"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="none"
+          poster="/assets/home/hero-poster-light.webp"
+          disablepictureinpicture
+          controlslist="nodownload"
+          aria-hidden="true"
+        >
+          <source src="/assets/ergo-light.mp4" type="video/mp4" />
+        </video>
+      </div>
+
+      {/* mobile: the artwork sits above the copy, full-bleed */}
+      <div class="relative -mx-4 -mt-6 block w-[calc(100%+2rem)] md:hidden">
+        <img
+          src="/assets/home/hero-poster-light-mobile.webp"
+          alt=""
+          width="640"
+          height="360"
+          fetchpriority="high"
+          decoding="async"
+          class="w-full"
+        />
+        <img
+          src="/assets/home/hero-poster-dark-mobile.webp"
+          alt=""
+          width="640"
+          height="360"
+          fetchpriority="high"
+          decoding="async"
+          class="absolute inset-0 hidden h-full w-full object-cover dark:block"
+          aria-hidden="true"
+        />
+        <video
+          class="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          width="1920"
+          height="1080"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="none"
+          poster="/assets/home/hero-poster-light-mobile.webp"
+          disablepictureinpicture
+          controlslist="nodownload"
+          aria-hidden="true"
+        >
+          <source src="/assets/ergo-light.mp4" type="video/mp4" />
+        </video>
+      </div>
+
+      <div class="relative z-10 max-w-lg leading-none md:max-w-3xl lg:max-w-4xl">
+        <h1 class="font-display text-[clamp(3.25rem,10.5vw,4.5rem)] leading-tight font-bold text-black md:text-[clamp(3.25rem,5vw,5rem)] dark:text-white">
+          {tr(loc, 'home.hero.title', 'Powering the Future of Finance')}
+        </h1>
+      </div>
+
+      <div class="relative z-10 mt-2 max-w-lg md:mt-8 md:max-w-xl">
+        <p class="text-2xl leading-9 text-black dark:text-white">
+          {tr(
+            loc,
+            'home.hero.subtitle',
+            'Ergo is a next-generation smart contract platform that ensures the economic freedom of ordinary people through secure, accessible, and decentralized financial tools.',
+          )}
+        </p>
+      </div>
+
+      <div class="relative z-10 mt-4 flex gap-4 md:mt-6">
+        <PillButton href={`/${loc}/discover/`}>
+          {tr(loc, 'home.hero.cta', 'Dive in')}
+        </PillButton>
+        <PillButton
+          href="https://docs.google.com/presentation/d/e/2PACX-1vRKsXBoOE7llTGjsh5c_FfU3cLw3DRtsPs4d4iS6OeoAJIbjTGS6uXpofPirRYvK58aKde5j1yqAiFV/pub?start=false&loop=false&delayms=3000"
+          variant="secondary"
+          external
+          class="animate-pulse"
+        >
+          {tr(loc, 'home.hero.pitch', 'Pitch deck')}
+        </PillButton>
+      </div>
+    </div>
+  </section>
+
+  {/*
+    Live network values. Fetched client-side so the page stays cacheable; the live site
+    bakes them into an uncacheable SSR response. The white panel is right-aligned and
+    rounded only on its left edge, 1100px wide at this viewport.
+  */}
+  <div id="HomeInfo" class="relative z-10 md:h-[200px] md:overflow-hidden">
+    <div class="absolute inset-x-0 top-0 hidden items-center justify-end md:flex" data-node-stats>
+      <div class="mx-4 flex max-w-full flex-row items-center overflow-hidden rounded-l-xl bg-white shadow-[0_0_46px_rgba(214,214,214,0.15),0_0_20px_rgba(214,214,214,0.6)] md:mx-0 md:h-[120px] md:w-[980px] md:pr-18 lg:w-[1040px] lg:pr-20 xl:w-[1100px] xl:pr-36">
+        <div class="mx-8 my-4 min-w-[200px] text-center">
+          <b class="block h-6 leading-none whitespace-nowrap text-[#a63a00]">
+            {tr(loc, 'home.blockReward', 'Block reward')}
+          </b>
+          <span class="font-sans text-xl whitespace-nowrap tabular-nums text-black">
+            <span data-stat="blockReward">&mdash;</span>
+          </span>
+        </div>
+        <div class="my-auto h-14 w-px bg-[var(--border)]"></div>
+        <div class="mx-8 my-4 min-w-[200px] text-center">
+          <b class="block h-6 leading-none whitespace-nowrap text-[#a63a00]">
+            {tr(loc, 'home.supply', 'Circulating supply')}
+          </b>
+          <span class="font-sans text-xl whitespace-nowrap tabular-nums text-black">
+            <span data-stat="supply">&mdash;</span>
+          </span>
+        </div>
+        <div class="my-auto h-14 w-px bg-[var(--border)]"></div>
+        <div class="mx-8 my-4 min-w-[200px] text-center">
+          <b class="block h-6 leading-none whitespace-nowrap text-[#a63a00]">
+            {tr(loc, 'home.transactionsPerDay', 'Transactions per day')}
+          </b>
+          <span class="font-sans text-xl whitespace-nowrap tabular-nums text-black">
+            <span data-stat="transactionAverage">&mdash;</span>
+          </span>
+        </div>
+        <div class="my-auto h-14 w-px bg-[var(--border)]"></div>
+        <div class="mx-8 my-4 min-w-[200px] text-center">
+          <b class="block h-6 leading-none whitespace-nowrap text-[#a63a00]">
+            {tr(loc, 'home.hashRateHero', 'Hash rate')}
+          </b>
+          <span class="font-sans text-xl whitespace-nowrap tabular-nums text-black">
+            <span data-stat="hashRate">&mdash;</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    {/* mobile panel, in flow */}
+    <div class="flex justify-center px-4 md:hidden" data-node-stats>
+      <dl class="my-4 grid w-full max-w-[360px] grid-cols-2 overflow-hidden rounded-xl bg-white py-2 shadow-[0_0_20px_rgba(214,214,214,0.6)]">
+        <div class="mx-4 my-3 text-center">
+          <dt class="block h-6 text-base font-bold leading-none text-[#a63a00]">
+            {tr(loc, 'home.blockReward', 'Block reward')}
+          </dt>
+          <dd class="mt-2 text-xl tabular-nums" data-stat="blockReward">&mdash;</dd>
+        </div>
+        <div class="mx-4 my-3 text-center">
+          <dt class="block h-6 text-base font-bold leading-none text-[#a63a00]">
+            {tr(loc, 'home.supply', 'Circulating supply')}
+          </dt>
+          <dd class="mt-2 text-xl tabular-nums" data-stat="supply">&mdash;</dd>
+        </div>
+        <div class="mx-4 my-3 text-center">
+          <dt class="block h-6 text-base font-bold leading-none text-[#a63a00]">
+            {tr(loc, 'home.transactionsPerDay', 'Transactions per day')}
+          </dt>
+          <dd class="mt-2 text-xl tabular-nums" data-stat="transactionAverage">&mdash;</dd>
+        </div>
+        <div class="mx-4 my-3 text-center">
+          <dt class="block h-6 text-base font-bold leading-none text-[#a63a00]">
+            {tr(loc, 'home.hashRateHero', 'Hash rate')}
+          </dt>
+          <dd class="mt-2 text-xl tabular-nums" data-stat="hashRate">&mdash;</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <Highlights locale={loc} />
+  <WhatMakesUnique locale={loc} />
+  <GetErgSteps locale={loc} />
+  <Autolykos locale={loc} />
+
+  {/*
+    News & Blog. Production puts the latest-news card on the left and the two display-size
+    headings on the right, then runs the post carousel underneath, starting 80px in from
+    the viewport edge with 384px cards 32px apart.
+  */}
+  {
+    featured.length > 0 && (
+      <>
+        <section id="News" class="relative z-[12] mx-auto max-w-7xl px-2 md:px-4">
+          <div class="mt-36 mb-14 flex max-w-7xl flex-col p-4 md:p-0 lg:flex-row">
+            <div class="item mb-8 text-right lg:order-last lg:w-1/2">
+              <h1 class="display-96 leading-none">{t(loc, 'components.news.title')}</h1>
+              <h1 class="display-96 leading-none">&amp;{t(loc, 'components.news.blog')}</h1>
+            </div>
+
+            <div class="card-bg item rounded-xl p-8 text-right lg:w-1/2">
+              <p class="text-xl uppercase leading-[1.5]">{t(loc, 'components.news.latest')}</p>
+              {latestNews.length > 0 && (
+                <div class="group relative mt-6 max-h-[12rem] w-full overflow-hidden text-left">
+                  <ul class="list-disc space-y-2 pl-5">
+                    {latestNews.map((post) => (
+                      <li class="flex min-w-0 items-baseline gap-2 text-black dark:text-white">
+                        <span class="text-sm whitespace-nowrap text-gray-600 dark:text-gray-300">
+                          {newsDate(post.data.date)}
+                        </span>
+                        <a
+                          href={post.data.externalUrl ??
+                            `/${loc}/blog/${encodeURI(post.data.slug)}/`}
+                          title={post.data.title}
+                          class="min-w-0 flex-1 truncate underline hover:no-underline dark:text-brand-orange"
+                          {...(post.data.externalUrl
+                            ? { target: '_blank', rel: 'noopener noreferrer' }
+                            : {})}
+                        >
+                          {post.data.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <a
+                href={`/${loc}/blog/?type=news`}
+                class="mt-2 inline-block text-sm font-semibold text-brand-orange underline hover:no-underline"
+              >
+                {t(loc, 'components.news.viewAll')}
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <div
+          id="Feed"
+          class="no-scrollbar relative z-[12] mt-8 flex space-x-8 overflow-x-auto pb-10"
+        >
+          <div class="hidden w-20 shrink-0 md:block"></div>
+          {featured.map((post) => (
+            <div class="w-[384px] shrink-0">
+              <PostCard post={post} variant="feature" />
+            </div>
+          ))}
+        </div>
+      </>
+    )
+  }
+
+  {
+    partners.length > 0 && (
+      <section id="Partners" class="relative z-10 mx-auto max-w-[1300px] scroll-mt-24 px-4 py-12 lg:px-4 lg:py-16">
+        <div class="text-center">
+          <h2 class="display-120-bold">{t(loc, 'home.partners')}</h2>
+        </div>
+        <div class="mt-6 grid grid-cols-2 gap-0.5 md:grid-cols-3 lg:mt-8">
+          {partners.map((p) => {
+            // The CMS exports "small_"/"thumbnail_" renditions, but production renders
+            // the originals; the originals have less padding, so the logos match its size.
+            const src = mediaSrc(p.image ?? p.imageDark, 640)
+              ?.replace('/uploads/small_', '/uploads/')
+              .replace('/uploads/thumbnail_', '/uploads/');
+            return (
+              <div class="col-span-1 m-auto flex justify-center px-8 py-8">
+                <a
+                  href={p.url ?? '#'}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={p.name}
+                >
+                  {src ? (
+                    <img
+                      src={src}
+                      alt={p.name}
+                      width={p.image?.width ?? 250}
+                      height={p.image?.height ?? 120}
+                      loading="lazy"
+                      decoding="async"
+                      class="h-auto max-w-full"
+                    />
+                  ) : (
+                    <span class="text-sm font-semibold">{p.name}</span>
+                  )}
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    )
+  }
+
+  <Contribute locale={loc} />
+</Base>
+
+<style>
+  /* production's carousel and strip have no visible scrollbar */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* production's tinted news card */
+  .card-bg {
+    background-color: rgb(255 255 255 / 0.6);
+    box-shadow: 0 4px 18px rgb(0 0 0 / 0.4);
+  }
+
+  :global(.dark) .card-bg {
+    background:
+      linear-gradient(240.01deg, rgb(255 255 255 / 0.15) -4.45%, rgb(255 255 255 / 0) 17.42%),
+      linear-gradient(246.95deg, rgb(255 255 255 / 0) 65.9%, rgb(255 255 255 / 0.15)),
+      rgb(18 18 18 / 0.4);
+  }
+</style>
+
+<script>
+  /**
+   * Network stats are the only genuinely live values on the site. Fetching them from
+   * the browser keeps the page itself static and cacheable, which the current
+   * server-rendered setup does not: today every request re-renders and every value
+   * is baked into an uncacheable response.
+   */
+  interface NodeInfo {
+    supply: number;
+    hashRate: number;
+    transactionAverage: number;
+  }
+
+  const panels = document.querySelectorAll('[data-node-stats]');
+  if (panels.length > 0) {
+    const nf = (min: number, max: number) =>
+      new Intl.NumberFormat(document.documentElement.lang, {
+        minimumFractionDigits: min,
+        maximumFractionDigits: max,
+      });
+
+    /** the live site shows ERG, not nanoERG, and TH/s for hashrate */
+    const format = {
+      supply: (v: number) => nf(0, 0).format(Math.round(v / 1e8)),
+      hashRate: (v: number) => `${nf(2, 2).format(v / 1e12)} TH/s`,
+      transactionAverage: (v: number) => nf(0, 0).format(v),
+      blockReward: (v: number) => nf(0, 0).format(v),
+    } as const;
+
+    const paint = (info: Partial<NodeInfo> & { blockReward?: number }) => {
+      for (const key of Object.keys(format) as (keyof typeof format)[]) {
+        for (const panel of panels) {
+          const target = panel.querySelector(`[data-stat="${key}"]`);
+          const value = info[key];
+          if (target && typeof value === 'number') target.textContent = format[key](value);
+        }
+      }
+    };
+
+    const load = async () => {
+      try {
+        const [infoRes, blockRes] = await Promise.all([
+          fetch('https://api.ergoplatform.com/info'),
+          fetch('https://api.ergoplatform.com/blocks?limit=1'),
+        ]);
+        const info: NodeInfo | null = infoRes.ok ? await infoRes.json() : null;
+
+        let blockReward: number | undefined;
+        if (blockRes.ok) {
+          const blocks = await blockRes.json();
+          const b = blocks?.items?.[0];
+          if (b && b.reward != null) {
+            const rewards = Array.isArray(b.reward) ? b.reward : [b.reward];
+            const total = rewards.reduce((n: number, r: any) => n + (r.value ?? 0), 0);
+            if (total > 0) blockReward = total;
+          }
+        }
+
+        if (info) paint({ ...info, ...(blockReward ? { blockReward } : {}) });
+      } catch {
+        /* stats are supplementary; leave the em-dash placeholders in place */
+      }
+    };
+
+    paint({ blockReward: 3 });
+    load();
+    const timer = setInterval(load, 60_000);
+    window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
+  }
+</script>

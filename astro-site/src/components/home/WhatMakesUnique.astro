@@ -1,0 +1,118 @@
+---
+/**
+ * WHAT MAKES ERGO UNIQUE — four cards in a single full-bleed strip, each a #FCFCFC panel
+ * with a line-art motif, a 24px heading, a paragraph and an EXPLORE link.
+ *
+ * The motifs are production's own, copied out of its DOM by scripts/recover-card-art.mjs
+ * into public/artwork/unique/. The strip is 4×360px at a 1440 viewport — production does
+ * not inset it — and the cards share 1px borders rather than gaps.
+ *
+ * Copy comes from the CMS's i18n bundle, so it is already translated into all twelve
+ * locales; the destinations were read off the rendered page by scripts/recover-home.mjs.
+ */
+import SectionKicker from '../SectionKicker.astro';
+import PillButton from '../PillButton.astro';
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const loc = normaliseLocale(locale);
+
+/** the motifs, keyed by card, as recovered from production */
+const MOTIFS: Record<number, string> = {
+  1: '/artwork/unique/card-1.svg',
+  2: '/artwork/unique/card-2.svg',
+  3: '/artwork/unique/card-3.svg',
+  4: '/artwork/unique/card-4.svg',
+};
+
+/**
+ * The four cards, in the order production lays them out.
+ *
+ * The third destination is hardcoded to the English post, as it is on the live site: only
+ * `en` and `pt` have a translation of it in the archive, so a locale-relative URL would
+ * dead-end on the other ten.
+ */
+const CARDS = [
+  { n: 1, href: `/${loc}/discover/#DiscoverERG` },
+  { n: 2, href: `/${loc}/discover/#FAQ` },
+  { n: 3, href: '/en/blog/2022-02-01-decentralized-finance-and-optional-privacy-on-ergo/' },
+  { n: 4, href: 'https://docs.ergoplatform.com/tags/#nipopows' },
+];
+---
+
+<section id="WhatMakesUnique" class="mt-28 scroll-mt-24 lg:min-h-[600px]">
+  <div class="text-center">
+    <div class="inline-block">
+      <SectionKicker center>{t(loc, 'components.uniqueErgo.title')}</SectionKicker>
+    </div>
+  </div>
+
+  <div class="no-scrollbar relative z-20 overflow-x-auto">
+    <div class="my-8 flex min-w-[1000px] items-center justify-center antialiased">
+      <div class="flex w-full items-stretch">
+        {
+          CARDS.map((card) => (
+            <div class="unique-card flex min-w-[260px] flex-grow cursor-pointer flex-col overflow-hidden border border-[#625d5d] pb-28 dark:border-[#2A2A2A] sm:min-w-[300px]">
+              <div class="flex flex-col p-4 pt-16 lg:pt-8">
+                <div class="mb-3 flex flex-col overflow-hidden px-4 text-left text-[24px] leading-tight sm:text-[28px] lg:text-[clamp(16px,1.5vw,24px)]">
+                  <div class="flex h-48 items-center justify-center overflow-hidden">
+                    <img
+                      src={MOTIFS[card.n]}
+                      alt=""
+                      width={290}
+                      height={151}
+                      loading="lazy"
+                      decoding="async"
+                      aria-hidden="true"
+                      class="h-auto max-h-full w-full max-w-full object-contain"
+                    />
+                  </div>
+                  <div class="mt-8 max-w-[220px] break-words sm:max-w-[260px] lg:max-w-[300px]">
+                    {t(loc, `components.uniqueErgo.card${card.n}.title`)}
+                  </div>
+                </div>
+                <div class="mt-4 max-w-xs px-4 text-left text-base text-black lg:max-w-sm dark:text-white">
+                  {t(loc, `components.uniqueErgo.card${card.n}.text`)}
+                </div>
+                <div class="mt-4 max-w-xs lg:max-w-sm">
+                  <div class="mt-8 sm:mt-10 lg:-ml-2 lg:mt-16">
+                    <PillButton
+                      href={card.href}
+                      variant="secondary"
+                      external={card.href.startsWith('http')}
+                    >
+                      {t(loc, `components.uniqueErgo.card${card.n}.button`)}
+                    </PillButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .unique-card {
+    background: #fcfcfc;
+  }
+
+  .dark .unique-card {
+    background: var(--color-brand-black, #121212);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+</style>

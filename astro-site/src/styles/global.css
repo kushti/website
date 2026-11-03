@@ -1,0 +1,1445 @@
+@import 'tailwindcss';
+@import './fonts.css';
+
+/*
+ * Ergo brand palette, recovered from the production stylesheet.
+ * Primary orange is #ff5e18; the dark surfaces below 232323 / 343434 track the
+ * theme the live site ships.
+ */
+@theme {
+  /*
+   * Production is on Tailwind 3, where `shadow-sm` is a barely visible 5% line. Tailwind 4
+   * renamed the old `shadow` to `shadow-sm`, which draws a much stronger halo around the
+   * transparent pill links. Pin the utility to the value production actually renders.
+   */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+  --color-brand-orange: #ff5e18;
+  --color-brand-orange-dark: #a63a00;
+  --color-brand-orange-tint: #ffe7d9;
+  --color-brand-navy: #0b1021;
+  --color-surface-light: #ffffff;
+  --color-surface-muted: #f8f8f8;
+  --color-surface-dark: #111827;
+  --color-surface-dark-2: #232323;
+  --color-surface-dark-3: #343434;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #585858;
+  --color-ink-faint: #807e7e;
+
+  /*
+   * Type scale, taken from the production stylesheet:
+   *   --fluid-h1: clamp(64px,16vw,140px)
+   *   --fluid-h2: clamp(56px,14vw,120px)
+   *   --fluid-h3: clamp(40px,10vw,80px)
+   *   --fluid-h4: clamp(34px,9vw,56px)
+   */
+  --fluid-h1: clamp(64px, 16vw, 140px);
+  --fluid-h2: clamp(56px, 14vw, 120px);
+  --fluid-h3: clamp(40px, 10vw, 80px);
+  --fluid-h4: clamp(34px, 9vw, 56px);
+
+  /*
+   * Production sets body copy in Roboto and every heading, nav item and button in
+   * "Vinila Extended" — a wide display grotesque. That face is commercial and cannot be
+   * redistributed, so Archivo stands in; the 112% stretch is what carries the width.
+   * Verified against scripts/measure-fonts.mjs; see docs/visual-comparison.md.
+   */
+  --font-sans: 'Roboto', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-display: 'Archivo', 'Roboto', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* the display face is stretched at every size, which is what makes it read as wide */
+@utility font-display {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+}
+
+/*
+ * Production names its display cuts as separate families and selects them by name in the
+ * markup (`font-vinila-extended`, `-bold`, `-light`); the substitute is one variable
+ * family, so the cut becomes the weight. The names are kept so the copied markup reads
+ * the same as production's.
+ */
+@utility font-vinila-extended {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 400;
+}
+
+@utility font-vinila-extended-bold {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+}
+
+@utility font-vinila-extended-light {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 300;
+}
+
+/* production's 24px display-face subtitle */
+@utility font-subtitle-3 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 24px;
+}
+
+@utility font-subtitle-3-bold {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+@media screen and (max-width: 768px) {
+  .font-subtitle-3-bold {
+    font-size: 16px;
+  }
+}
+
+/* production's body face, for markup that opts back out of the heading faces */
+@utility font-roboto {
+  font-family: var(--font-sans);
+}
+
+/* production's balanced two-line display headings */
+@utility heading-balance {
+  text-wrap: balance;
+}
+
+/*
+ * Production sets the heading faces by element: h1 and h2 in the bold cut of the display
+ * face, h3 in the regular cut at 32px, h4 in the light cut. Sizes are otherwise left
+ * inherited, exactly as production's reset leaves them, so a heading's size comes from
+ * whatever utility sits on it.
+ *
+ * These must stay in `@layer base`: an unlayered rule wins over every layered one
+ * regardless of specificity, which would silently override the size utilities.
+ */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-stretch: 88%;
+    font-weight: 700;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-stretch: 88%;
+    font-weight: 400;
+    font-size: 32px;
+  }
+
+  h4 {
+    font-family: var(--font-display);
+    font-stretch: 88%;
+    font-weight: 300;
+  }
+}
+
+/*
+ * Production loads two cuts of its display face — "Vinila Extended" and "Vinila Extended
+ * Bold" — and picks between them by family name, not by `font-weight`: headings declare
+ * `font-weight: 400` and still render in the Bold cut. The substitute is a single
+ * variable family, so the cut is chosen by weight here instead.
+ *
+ * The sizes are named after the pixel size they render at, because that is what
+ * scripts/measure-fonts.mjs records and what the stylesheet has to reproduce.
+ */
+.display {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  letter-spacing: normal;
+}
+
+/* the regular cut: nav items, buttons and the large percentage */
+.display {
+  font-weight: 400;
+}
+
+/* Discover Ergo, Software, Learn, Contribute */
+.display-120 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 400;
+  font-size: 120px;
+  line-height: 1.25;
+  letter-spacing: normal;
+}
+
+/* Partners: the same size as above, but the bold cut */
+.display-120-bold {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 120px;
+  line-height: 1.25;
+  letter-spacing: normal;
+}
+
+/* Grants & Bounties, Explore */
+.display-140 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 140px;
+  line-height: 1.1;
+  letter-spacing: normal;
+}
+
+/* highlight titles, GET ERG, News & Blog, the blog index */
+.display-96 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 96px;
+  line-height: 1;
+  letter-spacing: normal;
+}
+
+/* The Future of Proof of Work, Contribute */
+.display-80 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 80px;
+  line-height: 1;
+  letter-spacing: normal;
+}
+
+/* the 95.57% figure, in the regular cut */
+.display-56 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 400;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: normal;
+}
+
+/* the home hero */
+.display-72 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 72px;
+  line-height: 1.25;
+  letter-spacing: normal;
+}
+
+/* "I am a developer" — production sizes the two Contribute columns differently, 70 and 80 */
+.display-70 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 70px;
+  line-height: 1;
+  letter-spacing: normal;
+}
+
+/* the step titles — Mine It, Buy It, Store It, Use It */
+.display-20 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.4;
+  letter-spacing: normal;
+}
+
+/* NEW FEATURES AND PROJECTS YOU MIGHT LIKE, and the like */
+.display-32 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.5;
+  letter-spacing: normal;
+}
+
+/* the footer's column titles and the small section sub-headings */
+.display-18 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.55;
+  letter-spacing: normal;
+}
+
+/*
+ * Every display size is fluid below the desktop measure; production's are fixed, but its
+ * layout is already broken there, and a 140px heading on a phone overflows the viewport.
+ */
+@media (max-width: 1023px) {
+  .display-120,
+  .display-140 {
+    font-size: clamp(40px, 9vw, 72px);
+    line-height: 1.1;
+  }
+  .display-96,
+  .display-80 {
+    font-size: clamp(34px, 7.5vw, 60px);
+    line-height: 1.1;
+  }
+  .display-72,
+  .display-56 {
+    font-size: clamp(32px, 7vw, 52px);
+    line-height: 1.15;
+  }
+}
+
+/*
+ * Section kickers — HIGHLIGHTS, WHAT MAKES ERGO UNIQUE, UNSTOPPABLE DEFI — are body-face
+ * bold caps at 20px, not display type, and are left-aligned in a full-width block.
+ */
+.kicker {
+  font-size: 20px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: normal;
+}
+
+/*
+ * Production applies its display scale to bare h1-h4 as a Tailwind typography reset. Here
+ * every heading carries an explicit .display-* class instead: the bare-element rule would
+ * otherwise outrank them, because `:not([class*='text-'])` is more specific than a class,
+ * and it would silently reset the size on each of the utilities below.
+ *
+ * Article headings are scoped under .prose-post further down and are unaffected.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: var(--color-surface-light);
+  --fg: var(--color-ink);
+  --fg-muted: var(--color-ink-muted);
+  --surface: var(--color-surface-muted);
+  --border: rgb(0 0 0 / 0.1);
+}
+
+.dark {
+  --bg: var(--color-surface-dark);
+  --fg: #f4f4f5;
+  --fg-muted: #a1a1aa;
+  --surface: var(--color-surface-dark-2);
+  --border: rgb(255 255 255 / 0.12);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * The header's theme switch is one 40px icon cell on an 80px track. The track's
+ * justify-content moves the cell between the right (light) and left (dark) ends.
+ */
+.theme-cell {
+  transition: color 150ms ease;
+}
+
+/*
+ * Post body typography.
+ *
+ * Scoped to .prose-post rather than a global element selector so it cannot leak into
+ * the chrome. Width is capped because the archive's longest posts run 38 KB and
+ * full-width prose is unreadable past ~70 characters.
+ */
+.prose-post {
+  max-width: 46rem;
+  line-height: 1.75;
+  font-size: 1.0625rem;
+}
+
+.prose-post > * + * {
+  margin-top: 1.25em;
+}
+
+/*
+ * Article headings are set in the display face in production — 24px in weight 700 for
+ * h2, per scripts/measure-fonts.mjs — while article copy stays in Roboto.
+ */
+.prose-post h2,
+.prose-post h3,
+.prose-post h4 {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 2em;
+  letter-spacing: -0.01em;
+}
+
+.prose-post h2 {
+  font-size: 1.5rem;
+}
+.prose-post h3 {
+  font-size: 1.25rem;
+}
+.prose-post h4 {
+  font-size: 1.0625rem;
+}
+
+.prose-post a {
+  color: var(--color-brand-orange);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dark .prose-post a {
+  color: #ff8a4c;
+}
+
+.prose-post ul,
+.prose-post ol {
+  padding-left: 1.5rem;
+}
+
+.prose-post ul {
+  list-style: disc;
+}
+.prose-post ol {
+  list-style: decimal;
+}
+
+.prose-post li + li {
+  margin-top: 0.35em;
+}
+
+.prose-post li > ul,
+.prose-post li > ol {
+  margin-top: 0.35em;
+}
+
+.prose-post img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}
+
+.prose-post blockquote {
+  border-left: 3px solid var(--color-brand-orange);
+  padding-left: 1rem;
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.prose-post code {
+  background: var(--surface);
+  border-radius: 0.25rem;
+  padding: 0.15em 0.35em;
+  font-size: 0.9em;
+}
+
+.prose-post pre {
+  background: var(--surface);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.prose-post pre code {
+  background: none;
+  padding: 0;
+}
+
+.prose-post hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.prose-post table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose-post th,
+.prose-post td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.prose-post th {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+/*
+ * The footer ground. Production ships one 1440px-wide raster per theme (plus a smaller
+ * one below 768px) and positions it at the bottom, covered, behind the content.
+ */
+.footer-image {
+  background: no-repeat url('/assets/footer-light.png') bottom;
+  background-size: cover;
+  background-image: image-set(
+    url('/assets/footer-light.avif') type('image/avif') 1x,
+    url('/assets/footer-light.webp') type('image/webp') 1x,
+    url('/assets/footer-light.png') type('image/png') 1x
+  );
+}
+
+.dark .footer-image {
+  background: no-repeat url('/assets/footer.png') bottom;
+  background-size: cover;
+  background-image: image-set(
+    url('/assets/footer.avif') type('image/avif') 1x,
+    url('/assets/footer.webp') type('image/webp') 1x,
+    url('/assets/footer.png') type('image/png') 1x
+  );
+}
+
+@media screen and (max-width: 768px) {
+  .footer-image {
+    background: no-repeat url('/assets/footer-small-light.png') bottom;
+  }
+  .dark .footer-image {
+    background: no-repeat url('/assets/footer-small.png') bottom;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  background: var(--color-brand-orange);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+/*
+ * Production's underline-plus-arrow link, used in the section heroes:
+ * black text with a rule under it and an orange arrow that stays put on hover.
+ */
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 2px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.link-arrow::after {
+  content: '\2192';
+  color: var(--color-brand-orange);
+}
+.link-arrow:hover {
+  opacity: 0.7;
+}
+
+/* the Ergo mark and wordmark are <img> elements, so they need their own dark-mode tint */
+.dark img[src$='ergo-mark.svg'],
+.dark img[src$='ergo-logo.svg'] {
+  filter: invert(1);
+}
+
+/*
+ * Article page: an orange gradient band with the article on a raised card, which is how
+ * production sets every post.
+ */
+.post-band {
+  background: linear-gradient(180deg, #ffe7d9 0%, #ffd0b0 40%, rgba(255, 255, 255, 0) 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 620px;
+}
+
+.dark .post-band {
+  background: linear-gradient(180deg, #1a0f08 0%, #22120a 40%, rgba(0, 0, 0, 0) 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 620px;
+}
+
+/*
+ * Post titles are set at 40px in the display face in production, not in the fluid h1
+ * scale. Measured by scripts/measure-fonts.mjs.
+ */
+.post-title {
+  font-family: var(--font-display);
+  font-stretch: 88%;
+  font-size: 40px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Production crops post artwork into a hexagon with a notched left edge. Reproduced with
+ * a clip-path so it works on any image without needing a per-image mask.
+ */
+.hero-hex,
+.card-hex {
+  clip-path: polygon(14% 0, 100% 0, 100% 100%, 14% 100%, 0 50%);
+}
+
+@media (min-width: 640px) {
+  .hero-hex,
+  .card-hex {
+    clip-path: polygon(8% 0, 100% 0, 100% 100%, 8% 100%, 0 50%);
+  }
+}
+
+/*
+ * Home-page ambient artwork. Production renders these absolutely positioned layers
+ * between the theme script and <main>; the transparent sections let them show through.
+ * Values are copied from the live stylesheet (see docs/visual-comparison.md).
+ */
+.home-decor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.home-frame-3 {
+  position: absolute;
+  width: 351px;
+  height: 1240px;
+  top: 500px;
+  right: 0;
+  background: no-repeat url('/assets/home/frame-3-light.png');
+  background-position: 100%;
+  background-size: contain;
+  z-index: 1;
+}
+
+.dark .home-frame-3 {
+  background-image: url('/assets/home/frame-3.png');
+}
+
+.home-frame-4 {
+  position: absolute;
+  width: 667px;
+  height: 1031px;
+  top: 3500px;
+  left: 0;
+  background-image: url('/assets/home/frame-4-light.png');
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.dark .home-frame-4 {
+  background-image: url('/assets/home/frame-4.png');
+}
+
+.home-frame-5 {
+  position: absolute;
+  width: 382px;
+  height: 1491px;
+  top: 3800px;
+  right: 0;
+  background-image: url('/assets/home/frame-5-light.png');
+  background-position: 100% 0;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.dark .home-frame-5 {
+  background-image: url('/assets/home/frame-5.png');
+}
+
+.home-blur-1 {
+  position: absolute;
+  width: 769px;
+  height: 895px;
+  top: 0;
+  right: 0;
+  background: no-repeat url('/assets/home/blur-1-light.svg');
+  background-position: 100% 0;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.dark .home-blur-1 {
+  background: no-repeat url('/assets/home/blur-1.svg');
+  background-position: 100% 0;
+}
+
+.home-blur-2 {
+  position: absolute;
+  width: 606px;
+  height: 2402px;
+  top: 2400px;
+  left: 0;
+  background: no-repeat url('/assets/home/blur-2-light.svg');
+  background-size: contain;
+  background-position: 0 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dark .home-blur-2 {
+  background: no-repeat url('/assets/home/blur-2.svg');
+}
+
+.home-blur-3 {
+  position: absolute;
+  width: 524px;
+  height: 1419px;
+  top: 4000px;
+  left: 0;
+  background: no-repeat url('/assets/home/blur-3.svg');
+  background-size: contain;
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+.home-blur-4 {
+  position: absolute;
+  width: 459px;
+  height: 1677px;
+  top: 4500px;
+  right: 0;
+  background: no-repeat url('/assets/home/blur-4-light.svg');
+  background-size: contain;
+  background-position: 100% 0;
+  pointer-events: none;
+}
+
+.dark .home-blur-4 {
+  background: no-repeat url('/assets/home/blur-4.svg');
+}
+
+@media screen and (max-width: 768px) {
+  .home-blur-1,
+  .home-blur-2,
+  .home-blur-3,
+  .home-blur-4,
+  .home-frame-3,
+  .home-frame-4,
+  .home-frame-5 {
+    display: none !important;
+  }
+}
+
+/*
+ * Per-page ambient artwork. Production renders these absolute layers as siblings of
+ * <main>; the page sections are `relative z-10`, so the artwork stays behind them.
+ */
+.page-decor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  pointer-events: none;
+}
+
+/*
+ * Production wraps the whole document in `relative overflow-hidden`, so artwork that runs
+ * past the footer is clipped instead of lengthening the page. This modifier reproduces
+ * that on the community page (whose last frame is taller than the footer).
+ */
+.page-decor--clip {
+  bottom: 0;
+  height: auto;
+  overflow: hidden;
+}
+
+/* discover */
+.discover-frame-1 {
+  position: absolute;
+  width: 925px;
+  height: 1456px;
+  top: 150px;
+  right: 0;
+  background: no-repeat url('/assets/discover/frame-1-light.png');
+}
+
+.dark .discover-frame-1 {
+  background-image: url('/assets/discover/frame-1.png');
+}
+
+.discover-frame-2 {
+  position: absolute;
+  width: 535px;
+  height: 1427px;
+  top: 1300px;
+  left: 0;
+  background: no-repeat url('/assets/discover/frame-2-light.png');
+}
+
+.dark .discover-frame-2 {
+  width: 537px;
+  height: 1420px;
+  background-image: url('/assets/discover/frame-2.png');
+}
+
+.discover-frame-3 {
+  position: absolute;
+  width: 1058px;
+  height: 1508px;
+  top: 3500px;
+  right: 0;
+  background: no-repeat url('/assets/discover/frame-3-light.png');
+}
+
+.dark .discover-frame-3 {
+  width: 760px;
+  height: 999px;
+  top: 3300px;
+  background-image: url('/assets/discover/frame-3.png');
+}
+
+.discover-blur-1 {
+  position: absolute;
+  width: 470px;
+  height: 2396px;
+  top: 1500px;
+  left: 0;
+  background: no-repeat url('/assets/discover/blur-1-light.svg');
+  mix-blend-mode: overlay;
+}
+
+.dark .discover-blur-1 {
+  background-image: url('/assets/discover/blur-1-fixed.svg');
+}
+
+.discover-blur-2 {
+  position: absolute;
+  width: 527px;
+  height: 1598px;
+  top: 3500px;
+  left: 0;
+  background: no-repeat url('/assets/discover/blur-2-fixed.svg');
+}
+
+/* get-erg */
+.geterg-frame-1 {
+  position: absolute;
+  width: 576px;
+  height: 771px;
+  top: 0;
+  left: 0;
+  background: no-repeat url('/assets/geterg/frame-1-light.png');
+}
+
+.dark .geterg-frame-1 {
+  width: 573px;
+  height: 763px;
+  background-image: url('/assets/geterg/frame-1.png');
+}
+
+.geterg-frame-2 {
+  position: absolute;
+  overflow: hidden;
+  width: 770px;
+  height: 770px;
+  top: -50px;
+  left: 250px;
+  background: no-repeat url('/assets/geterg/frame-2-light.png');
+}
+
+.dark .geterg-frame-2 {
+  top: 0;
+  left: 150px;
+  background-image: url('/assets/geterg/frame-2.png');
+}
+
+.geterg-frame-3 {
+  position: absolute;
+  width: 254px;
+  height: 1054px;
+  top: 1200px;
+  right: 0;
+  background: no-repeat url('/assets/geterg/frame-3-light.png');
+}
+
+.dark .geterg-frame-3 {
+  background-image: url('/assets/geterg/frame-3.png');
+}
+
+.geterg-frame-4 {
+  position: absolute;
+  width: 401px;
+  height: 401px;
+  top: 2500px;
+  right: 0;
+  background: no-repeat url('/assets/geterg/frame-4-light.png');
+}
+
+.dark .geterg-frame-4 {
+  background-image: url('/assets/geterg/frame-4.png');
+}
+
+.geterg-frame-5 {
+  position: absolute;
+  width: 370px;
+  height: 582px;
+  top: 3200px;
+  right: 0;
+  background: no-repeat url('/assets/geterg/frame-5-light.png');
+}
+
+.dark .geterg-frame-5 {
+  background-image: url('/assets/geterg/frame-5.png');
+}
+
+.geterg-blur-1 {
+  position: absolute;
+  width: 641px;
+  height: 720px;
+  top: 0;
+  left: 0;
+  background: no-repeat url('/assets/geterg/blur-1-fixed.svg');
+  mix-blend-mode: normal;
+}
+
+.geterg-blur-2 {
+  position: absolute;
+  width: 519px;
+  height: 1944px;
+  top: 2400px;
+  right: 0;
+  background: no-repeat url('/assets/geterg/blur-2-light-fixed.svg');
+  mix-blend-mode: overlay;
+}
+
+.dark .geterg-blur-2 {
+  width: 566px;
+  height: 2396px;
+  top: 1000px;
+  background-image: url('/assets/geterg/blur-2-fixed.svg');
+}
+
+.geterg-blur-3 {
+  position: absolute;
+  width: 600px;
+  height: 1419px;
+  top: 2000px;
+  left: 0;
+  background: no-repeat url('/assets/geterg/blur-3-fixed.svg');
+  mix-blend-mode: overlay;
+}
+
+/* ecosystem */
+.ecosystem-frame-1 {
+  position: absolute;
+  width: 1088px;
+  height: 1382px;
+  top: 2900px;
+  right: 0;
+  background: no-repeat url('/assets/ecosystem/frame-1-light.png');
+}
+
+.dark .ecosystem-frame-1 {
+  background-image: url('/assets/ecosystem/frame-1.png');
+}
+
+.ecosystem-frame-2 {
+  position: absolute;
+  width: 145px;
+  height: 1143px;
+  top: 2800px;
+  right: 0;
+  background: no-repeat url('/assets/ecosystem/frame-2-light.png');
+}
+
+.dark .ecosystem-frame-2 {
+  background-image: url('/assets/ecosystem/frame-2.png');
+}
+
+.ecosystem-frame-3 {
+  position: absolute;
+  width: 102px;
+  height: 946px;
+  top: 2800px;
+  right: 0;
+  background: no-repeat url('/assets/ecosystem/frame-3-light.png');
+}
+
+.dark .ecosystem-frame-3 {
+  background-image: url('/assets/ecosystem/frame-3.png');
+}
+
+.ecosystem-blur-1 {
+  position: absolute;
+  width: 793px;
+  height: 1014px;
+  top: 0;
+  right: 0;
+  background: no-repeat url('/assets/ecosystem/blur-1-fixed.svg');
+}
+
+.ecosystem-blur-2 {
+  position: absolute;
+  width: 619px;
+  height: 1598px;
+  top: 2400px;
+  left: 0;
+  background: no-repeat url('/assets/ecosystem/blur-2-light.svg');
+}
+
+.dark .ecosystem-blur-2 {
+  background-image: url('/assets/ecosystem/blur-2-fixed.svg');
+}
+
+/*
+ * Production's wiki card is a two-part composition: a flat horizontal gradient under a
+ * PNG of the Ergonaut. The gradient is sampled from production's rendered card; the PNG
+ * is production's own artwork (the translucent left edge of the original is the gradient).
+ */
+.ergonaut-card {
+  background: linear-gradient(
+    90deg,
+    #1b2a44 0%,
+    #1b2a44 6.31%,
+    #202f4a 11.04%,
+    #23334d 14.2%,
+    #263651 17.35%,
+    #293a55 20.5%,
+    #2c3d58 23.66%,
+    #31425e 28.39%,
+    #364863 33.12%,
+    #3a4d69 37.85%,
+    #3f526f 42.59%,
+    #445874 47.32%,
+    #495d7a 52.05%,
+    #4d627f 56.78%,
+    #506582 61.51%,
+    #506582 100%
+  );
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 20px;
+}
+
+/* production's roadmap rows and favourite cards */
+.roadmap-item-bg {
+  background: rgba(18, 18, 18, 0.06);
+}
+
+.dark .roadmap-item-bg {
+  background: hsla(0, 0%, 100%, 0.06);
+}
+
+.favorite-card {
+  box-shadow: 0 4px 10px rgba(214, 214, 214, 0.25);
+}
+
+.dark .favorite-card {
+  box-shadow: none;
+}
+
+/* production hides the horizontal scrollbar on its overflowing card rows */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* the two dots under production's favourites swiper (12px bullets scaled to 8px) */
+.favorite-bullet {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #cccccc;
+  transition: background-color 0.2s ease;
+}
+
+.favorite-bullet.is-active {
+  background: #000;
+}
+
+/* blog list and article decor (live.css `.blog-*`) */
+.blog-frame-1 {
+  position: absolute;
+  width: 527px;
+  height: 283px;
+  left: 550px;
+  top: 180px;
+  background: no-repeat url('/assets/blog/frame-1-light.png');
+  filter: drop-shadow(0 4px 4px rgb(0 0 0 / 0.25));
+}
+
+.dark .blog-frame-1 {
+  background-image: url('/assets/blog/frame-1.png');
+}
+
+.blog-frame-2,
+.blog-frame-3 {
+  position: absolute;
+  width: 185px;
+  height: 1265px;
+  left: 0;
+  background: no-repeat url('/assets/blog/frame-2.png');
+}
+
+.blog-frame-2 {
+  top: 400px;
+}
+
+.blog-frame-3 {
+  top: 1200px;
+}
+
+.blog-blur-1 {
+  position: absolute;
+  width: 730px;
+  height: 820px;
+  top: 0;
+  left: 0;
+  background: no-repeat url('/assets/blog/blur-1.svg');
+}
+
+.blog-blur-2 {
+  position: absolute;
+  width: 512px;
+  height: 1419px;
+  top: 2000px;
+  right: 0;
+  background: no-repeat url('/assets/blog/blur-2.svg');
+}
+
+.single-post .blog-frame-1 {
+  top: 40px;
+  left: 40px;
+  transform: scale(0.75);
+  transform-origin: center left;
+}
+
+@media (max-width: 1279px) {
+  .page-decor > * {
+    display: none !important;
+  }
+}
+
+/*
+ * FAQ and document accordions. Production hides the native disclosure marker and puts
+ * the answer on a very light grey block; only the first item is open.
+ */
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-answer p,
+.faq-answer li {
+  margin-bottom: 16px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Community page
+ *
+ * The JoinUs card fill/shadow, the flip cards in the Hall of Fame and the
+ * foundation list styling come from production's own stylesheet.
+ * ------------------------------------------------------------------------- */
+
+.card-bg {
+  background-color: hsla(0, 0%, 100%, 0.6);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+}
+
+.dark .card-bg {
+  background:
+    linear-gradient(240.01deg, rgba(255, 255, 255, 0.15) -4.45%, rgba(255, 255, 255, 0) 17.42%),
+    linear-gradient(246.95deg, rgba(255, 255, 255, 0) 65.9%, rgba(255, 255, 255, 0.15)),
+    rgba(18, 18, 18, 0.4);
+}
+
+.flip-content {
+  transition: transform 0.2s;
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.flip:hover .flip-back {
+  visibility: visible;
+  opacity: 1;
+  transition: all 0.2s ease-in;
+}
+
+.flip-back,
+.flip-front {
+  position: absolute;
+  backface-visibility: hidden;
+}
+
+.flip-back {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #7b7b7b;
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.2s ease-out;
+}
+
+.hall-of-fame-person-card {
+  background: linear-gradient(150.5deg, #343434 6.25%, #070707 104.61%);
+  border-radius: 20px;
+}
+
+.ergo-foundation > li {
+  color: #807e7e;
+  margin-bottom: 16px;
+}
+
+.dark .ergo-foundation > li {
+  color: #807e7e;
+}
+
+/* the feed card's off-white panel (`.blog-post` in production's stylesheet) */
+.blog-post {
+  max-width: 384px;
+  background-color: #f9fafb;
+}
+
+.dark .blog-post {
+  background-color: #fff;
+}
+
+/* ---- community-page decor ---- */
+.community-frame-1 {
+  position: absolute;
+  width: 1465px;
+  height: 324px;
+  top: 0;
+  right: 0;
+  background: no-repeat url('/assets/community/frame-1-light.png');
+}
+
+.dark .community-frame-1 {
+  background: no-repeat url('/assets/community/frame-1.png');
+}
+
+.community-frame-2 {
+  position: absolute;
+  width: 591px;
+  height: 325px;
+  top: 0;
+  right: 0;
+  background: no-repeat url('/assets/community/frame-2-light.png');
+}
+
+.dark .community-frame-2 {
+  background: no-repeat url('/assets/community/frame-2.png');
+}
+
+.community-frame-3 {
+  position: absolute;
+  width: 1318px;
+  height: 484px;
+  top: 0;
+  right: 0;
+  background: no-repeat url('/assets/community/frame-3-light.png');
+}
+
+.dark .community-frame-3 {
+  width: 1314px;
+  background: no-repeat url('/assets/community/frame-3.png');
+}
+
+.community-frame-4 {
+  position: absolute;
+  width: 167px;
+  height: 1265px;
+  top: 750px;
+  left: 0;
+  background: no-repeat url('/assets/community/frame-4-light.png');
+}
+
+.dark .community-frame-4 {
+  background: no-repeat url('/assets/community/frame-4.png');
+}
+
+.community-frame-5 {
+  position: absolute;
+  width: 438px;
+  height: 674px;
+  top: 3200px;
+  left: 0;
+  background: no-repeat url('/assets/community/frame-5-light.png');
+}
+
+.dark .community-frame-5 {
+  width: 401px;
+  height: 482px;
+  background: no-repeat url('/assets/community/frame-5.png');
+}
+
+.community-frame-6 {
+  position: absolute;
+  width: 129px;
+  height: 946px;
+  top: 3200px;
+  right: 0;
+  background: no-repeat url('/assets/community/frame-6-light.png');
+}
+
+.dark .community-frame-6 {
+  background: no-repeat url('/assets/community/frame-6.png');
+}
+
+.community-frame-7 {
+  position: absolute;
+  width: 558px;
+  height: 964px;
+  top: 4725px;
+  right: 0;
+  background: no-repeat url('/assets/community/frame-7-light.png');
+}
+
+.dark .community-frame-7 {
+  background: no-repeat url('/assets/community/frame-7.png');
+}
+
+.community-frame-8 {
+  position: absolute;
+  width: 1148px;
+  height: 772px;
+  top: 6236px;
+  left: 0;
+  background: no-repeat url('/assets/community/frame-8-light.png');
+}
+
+.dark .community-frame-8 {
+  background: no-repeat url('/assets/community/frame-8.png');
+}
+
+.community-frame-9 {
+  position: absolute;
+  width: 157px;
+  height: 1064px;
+  top: 5700px;
+  right: 0;
+  background: no-repeat url('/assets/community/frame-9-light.png');
+}
+
+.dark .community-frame-9 {
+  background: no-repeat url('/assets/community/frame-9.png');
+}
+
+.community-frame-10 {
+  position: absolute;
+  width: 391px;
+  height: 461px;
+  top: 6200px;
+  left: 0;
+  background: no-repeat url('/assets/community/frame-10-light.png');
+}
+
+.dark .community-frame-10 {
+  background: no-repeat url('/assets/community/frame-10.png');
+}
+
+.community-blur-1 {
+  position: absolute;
+  width: 844px;
+  height: 1058px;
+  top: 0;
+  right: 0;
+  background: no-repeat url('/assets/community/blur-1-light.svg');
+}
+
+.dark .community-blur-1 {
+  width: 847px;
+  background: no-repeat url('/assets/community/blur-1-fixed.svg');
+}
+
+.community-blur-2 {
+  position: absolute;
+  width: 599px;
+  height: 1677px;
+  top: 2400px;
+  left: 0;
+  background: no-repeat url('/assets/community/blur-2-light.svg');
+}
+
+.dark .community-blur-2 {
+  width: 645px;
+  background: no-repeat url('/assets/community/blur-2-fixed.svg');
+}
+
+/*
+ * Production's stylesheet ends with a late patch:
+ *
+ *   a{color:#000!important;box-shadow:none!important}
+ *   .dark a{color:#fff!important}
+ *
+ * It wins over the utility colour put on a link, which is why the community page's
+ * "DIVE INTO ERGO" and "Contributing" links render black even though their markup says
+ * text-brand-orange, and why the transparent pill links have no shadow. The Sigmanauts
+ * CTA is a <button> upstream so it keeps its orange text and shadow; ours is an anchor
+ * for keyboard/no-JS navigation, so it opts back in with .link-orange.
+ */
+a {
+  color: #000 !important;
+  box-shadow: none !important;
+}
+
+/*
+ * Production pins black text on every orange `.btn` pill (including in dark mode, where
+ * the generic `.dark a` rule would otherwise turn it white). SEND's arrow stays white
+ * because the colour is a hardcoded path attribute upstream.
+ */
+.btn.bg-brand-orange {
+  color: #000 !important;
+}
+
+.dark a {
+  color: #fff !important;
+}
+
+a.link-orange {
+  color: var(--color-brand-orange) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.dark a.link-orange {
+  color: #fff !important;
+}

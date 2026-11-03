@@ -1,0 +1,50 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../../../layouts/Base.astro';
+import BlogList from '../../../../components/BlogList.astro';
+import { postsByLocale } from '../../../../lib/content';
+import { normaliseLocale } from '../../../../i18n/config';
+import { t } from '../../../../i18n';
+
+/**
+ * Static pagination for the blog index.
+ *
+ * Page 1 is served by `blog/index.astro`; this route emits 2..N. The live site takes a
+ * `?page=` query parameter and ignores it — every request returns the same 18 posts —
+ * so these are real URLs rather than a client-side effect.
+ *
+ * getStaticPaths is hoisted into its own module, so it loads the collection itself
+ * rather than closing over the helpers above.
+ */
+export async function getStaticPaths() {
+  const { PER_PAGE } = await import('../../../../i18n/routes');
+  const posts = await getCollection('posts');
+  const perLocale = new Map<string, number>();
+  for (const p of posts) {
+    perLocale.set(p.data.locale, (perLocale.get(p.data.locale) ?? 0) + 1);
+  }
+
+  const paths: { params: { locale: string; page: string } }[] = [];
+  for (const [locale, total] of perLocale) {
+    const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+    for (let n = 2; n <= totalPages; n += 1) {
+      paths.push({ params: { locale, page: String(n) } });
+    }
+  }
+  return paths;
+}
+
+const { locale, page } = Astro.params as { locale: string; page: string };
+const loc = normaliseLocale(locale);
+const n = Number(page);
+const posts = await postsByLocale(loc);
+---
+
+<Base locale={loc} wide decor="blog" title={`${t(loc, 'nav.blog')} — ${n}`}>
+  <BlogList
+    locale={loc}
+    posts={posts}
+    title="Posts"
+    page={n}
+  />
+</Base>

@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+import { DEFAULT_LOCALE } from '../i18n/config';
+import { t } from '../i18n';
+---
+
+<Base locale={DEFAULT_LOCALE} title={t(DEFAULT_LOCALE, 'notFound.title')}>
+  <div class="py-24 text-center">
+    <p class="text-6xl font-bold text-brand-orange">404</p>
+    <h1 class="mt-4 text-3xl font-bold tracking-tight">{t(DEFAULT_LOCALE, 'notFound.title')}</h1>
+    <p class="mt-2 text-[var(--fg-muted)]">{t(DEFAULT_LOCALE, 'notFound.body')}</p>
+    <a
+      href={`/${DEFAULT_LOCALE}/blog`}
+      class="mt-8 inline-block rounded-lg bg-brand-orange px-5 py-2.5 font-medium text-white hover:bg-brand-orange-dark"
+    >
+      {t(DEFAULT_LOCALE, 'notFound.cta')}
+    </a>
+  </div>
+</Base>

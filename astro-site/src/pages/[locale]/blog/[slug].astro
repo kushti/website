@@ -1,0 +1,166 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import PostCard from '../../../components/PostCard.astro';
+import { mediaSrc, mediaSrcset, relatedPosts, type Post } from '../../../lib/content';
+import { normaliseLocale } from '../../../i18n/config';
+import { formatLongDate } from '../../../lib/dates';
+import { t } from '../../../i18n';
+
+/**
+ * Every published post, at the URL the CMS already serves.
+ *
+ * `slug` comes from the database's `permalink` column verbatim. It is used as the
+ * route segment without normalisation: 81 permalinks contain non-ASCII characters or
+ * spaces, and 8 of those would be rewritten by a slugifier. Astro percent-encodes
+ * whatever it is given, which reproduces the live site's URLs exactly.
+ *
+ * 36 posts are a `blog`/`news` pair sharing one permalink, so two collection entries
+ * would claim the same route and the second would silently win. The live site serves
+ * the lower id — verified against production — so the flagged duplicate is skipped
+ * here rather than emitted under a path the live site never had.
+ */
+export async function getStaticPaths() {
+  const posts = await getCollection('posts');
+  return posts
+    .filter((post) => !post.data.superseded)
+    .map((post) => ({
+      params: {
+        locale: post.data.locale,
+        slug: post.data.slug,
+      },
+      props: { post },
+    }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const loc = normaliseLocale(post.data.locale);
+const { Content } = await render(post);
+const related = await relatedPosts(post, 6);
+
+const date = post.data.date ? formatLongDate(loc, post.data.date) : '';
+
+const isMachineTranslated = post.data.locale !== 'en';
+const minutes = Math.max(1, Math.round((post.body ?? '').split(/\s+/).length / 220));
+
+const img = post.data.image;
+const hero = mediaSrc(img, 1000);
+const heroSet = mediaSrcset(img);
+---
+
+<Base locale={loc} decor="post" title={post.data.title} description={post.data.subtitle ?? post.data.title}>
+  <!--
+    Production sets the article on a raised white card over an orange gradient wash. The
+    card fills the content column (1300px at a 1440 viewport) and the body copy is inset
+    within it, which is what scripts/measure-header.mjs records for the site grid.
+  -->
+  <div class="post-band relative overflow-hidden">
+    <div class="mx-auto w-full max-w-[1300px] px-4 pt-6 pb-16 md:pb-24">
+      <article
+        class="post-card relative z-10 rounded-3xl bg-white px-6 py-10 shadow-xl sm:px-10 md:px-16 md:py-14 dark:bg-[#0b0b0d]"
+      >
+        {/*
+          Order matters: back link, then the title, then the category, then the byline.
+          Production shows no reading time in the article header.
+        */}
+        <nav class="text-sm">
+          <a href={`/${loc}/blog`} class="underline hover:text-brand-orange">
+            {t(loc, 'blog.post.backToAll')}
+          </a>
+        </nav>
+
+        <header class="mt-6">
+          <h1 class="post-title">{post.data.title}</h1>
+
+          {
+            post.data.tags.length > 0 && (
+              <div class="mt-6 flex flex-wrap gap-2">
+                {post.data.tags.map((tag) => (
+                  <a
+                    href={`/${loc}/category/${encodeURIComponent(tag)}/`}
+                    class="rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold tracking-widest text-white uppercase"
+                  >
+                    {tag}
+                  </a>
+                ))}
+              </div>
+            )
+          }
+
+          <div class="mt-8 flex flex-wrap items-center gap-3 text-sm">
+            <img src="/images/ergo-mark.svg" alt="" width="82" height="82" class="h-10 w-10" />
+            <span>
+              <span class="block font-semibold">{post.data.author}</span>
+              {date && <time datetime={post.data.date?.toISOString()} class="block">{date}</time>}
+            </span>
+            <span class="ml-auto text-[var(--fg-muted)]">{minutes} {t(loc, 'blog.post.readTime')}</span>
+          </div>
+        </header>
+
+        {/*
+          The artwork and the body are inset within the card; production runs them at
+          roughly 80% of the card width, centred.
+        */}
+        {
+          hero && (
+            <img
+              src={hero}
+              srcset={heroSet}
+              width={img?.width}
+              height={img?.height}
+              alt={img?.alt ?? ''}
+              fetchpriority="high"
+              decoding="async"
+              class="hero-hex mx-auto mt-10 w-full max-w-[1010px]"
+            />
+          )
+        }
+
+        {
+          isMachineTranslated && (
+            <p
+              class="mx-auto mt-8 max-w-[1010px] rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--fg-muted)]"
+            >
+              {t(loc, 'blog.post.machineTranslated')}
+            </p>
+          )
+        }
+
+        <div class="prose-post mx-auto mt-10 max-w-[720px]">
+          {post.data.externalUrl && (
+            <p>
+              <a
+                href={post.data.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-medium"
+              >
+                {t(loc, 'blog.post.externalLink')} &rarr;
+              </a>
+            </p>
+          )}
+          <Content />
+        </div>
+      </article>
+    </div>
+  </div>
+
+  {
+    related.length > 0 && (
+      <aside class="mx-auto w-full max-w-[1300px] px-4 py-16 sm:px-6">
+        <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          {t(loc, 'blog.post.relatedPosts')}
+        </h2>
+        <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {related.map((p) => (
+            <PostCard post={p} />
+          ))}
+        </div>
+      </aside>
+    )
+  }
+</Base>

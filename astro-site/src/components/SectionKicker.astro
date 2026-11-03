@@ -1,0 +1,20 @@
+---
+/**
+ * The small caps line that introduces a home page section — HIGHLIGHTS, WHAT MAKES ERGO
+ * UNIQUE, UNSTOPPABLE DEFI. Production sets these in the body face at 20px in weight 700
+ * (see scripts/measure-fonts.mjs), left-aligned in a full-width block; the centred ones
+ * pass `center`.
+ *
+ * The label comes through the default slot. Reading `Astro.props.children` here left the
+ * element empty — Astro does not put slot content in props — which silently removed every
+ * section kicker on the site.
+ */
+interface Props {
+  center?: boolean;
+  class?: string;
+}
+
+const { center = false, class: className = '' } = Astro.props;
+---
+
+<p class:list={['kicker', center ? 'text-center' : '', className]}><slot /></p>

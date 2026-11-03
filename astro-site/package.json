@@ -1,0 +1,53 @@
+{
+  "name": "ergoplatform-org",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "verify:links": "node scripts/check-links.mjs",
+    "import": "node scripts/import-archive.mjs",
+    "verify:imports": "python3 scripts/check-imports.py",
+    "verify:frontmatter": "python3 scripts/check-frontmatter.py",
+    "compare:live": "python3 scripts/compare-with-live.py",
+    "diff:body": "python3 scripts/diff-article-body.py --prose-only",
+    "diff:output": "python3 scripts/diff-output.py",
+    "diff:sections": "python3 scripts/diff-sections.py",
+    "serve": "python3 scripts/serve.py dist 4400",
+    "shots": "node scripts/full-page-shots.mjs",
+    "shots:one": "node scripts/screenshot-compare.mjs",
+    "measure:live": "node scripts/measure-text.mjs",
+    "fetch:fonts": "node scripts/fetch-fonts.mjs",
+    "verify:pages": "node scripts/check-pages.mjs",
+    "verify:pages:all": "node scripts/check-pages.mjs --all",
+    "verify:i18n": "node scripts/check-i18n.mjs",
+    "repair:messages": "node scripts/repair-messages.mjs",
+    "fetch:illustrations": "python3 scripts/fetch-illustrations.py",
+    "preview:svg": "node scripts/preview-svg.mjs",
+    "dump:page": "node scripts/dump-page.mjs",
+    "diff:builds": "python3 scripts/diff-builds.py",
+    "compare:builds": "node scripts/compare-builds.mjs",
+    "fetch:artwork": "python3 scripts/fetch-artwork.py",
+    "recover:cards": "node scripts/recover-card-art.mjs",
+    "measure:sections": "node scripts/measure-sections.mjs",
+    "probe:visual": "node scripts/probe-visual.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.1",
+    "@astrojs/mdx": "8.0.2",
+    "@astrojs/sitemap": "3.7.4",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.3.5",
+    "remark-gfm": "^4.0.1",
+    "tailwindcss": "4.3.3"
+  }
+}

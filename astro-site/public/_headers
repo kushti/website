@@ -1,0 +1,37 @@
+# Cache and security policy for the static build.
+# Cloudflare Pages and Netlify both read this file.
+#
+# The live site currently returns `cache-control: public, max-age=0,
+# must-revalidate` and `cf-cache-status: DYNAMIC` for every HTML response, and
+# `private, no-cache, no-store` for its own static chunks. Nothing is cacheable.
+# Everything this build serves is immutable content.
+
+/*
+  Cache-Control: public, max-age=0, s-maxage=3600, stale-while-revalidate=86400
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+# Astro fingerprints everything under /_astro/, so it can be cached forever.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Uploaded media keeps its original CMS filename, so it is NOT fingerprinted.
+# One year rather than immutable: a file republished under an existing name would
+# otherwise be un-refreshable for every visitor.
+/uploads/*
+  Cache-Control: public, max-age=31536000
+
+/images/*
+  Cache-Control: public, max-age=31536000
+
+/favicon.svg
+  Cache-Control: public, max-age=86400
+
+/sitemap-index.xml
+  Cache-Control: public, max-age=3600
+
+/sitemap-0.xml
+  Cache-Control: public, max-age=3600

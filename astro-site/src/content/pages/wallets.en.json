@@ -1,0 +1,77 @@
+{
+ "note": "recovered from the rendered ergoplatform.org /en/get-erg/ page",
+ "items": [
+  {
+   "name": "Ergo Wallet App",
+   "url": "/en/ergo-wallet-app/",
+   "image": null,
+   "note": "Best for mobile",
+   "group": "COMMUNITY FAVOURITES",
+   "marks": [
+    "yes",
+    "no",
+    "yes"
+   ]
+  },
+  {
+   "name": "Nautilus",
+   "url": "https://github.com/capt-nemo429/nautilus-wallet",
+   "image": null,
+   "note": "Best for dApps",
+   "group": "COMMUNITY FAVOURITES",
+   "marks": [
+    "yes",
+    "yes",
+    "no"
+   ]
+  },
+  {
+   "name": "Satergo",
+   "url": "https://satergo.com/",
+   "image": null,
+   "note": "Desktop",
+   "group": "COMMUNITY FAVOURITES",
+   "marks": [
+    "in_progress",
+    "no",
+    "yes"
+   ]
+  },
+  {
+   "name": "SAFEW",
+   "url": "https://github.com/ThierryM1212/SAFEW",
+   "image": null,
+   "note": "Developer Tooling",
+   "group": "EXTRA FEATURES",
+   "marks": [
+    "in_progress",
+    "yes",
+    "yes"
+   ]
+  },
+  {
+   "name": "Minotaur",
+   "url": "https://github.com/minotaur-ergo/minotaur-wallet",
+   "image": null,
+   "note": "Multi Platform",
+   "group": "EXTRA FEATURES",
+   "marks": [
+    "in_progress",
+    "no",
+    "yes"
+   ]
+  },
+  {
+   "name": "Ergo Node",
+   "url": "https://docs.ergoplatform.com/node/install/",
+   "image": null,
+   "note": "Server",
+   "group": "REFERENCE CLIENT",
+   "marks": [
+    "no",
+    "no",
+    "no"
+   ]
+  }
+ ]
+}

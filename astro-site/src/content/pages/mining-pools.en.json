@@ -1,0 +1,50 @@
+{
+ "note": "recovered from the rendered ergoplatform.org /en/get-erg/ page",
+ "items": [
+  {
+   "name": "F2POOL",
+   "url": "https://www.f2pool.com/coin/ergo",
+   "image": null
+  },
+  {
+   "name": "666 POOL",
+   "url": "https://www.666pool.cn/pool2",
+   "image": null
+  },
+  {
+   "name": "HEROMINERS",
+   "url": "https://ergo.herominers.com/",
+   "image": null
+  },
+  {
+   "name": "NANOPOOL",
+   "url": "https://ergo.nanopool.org/",
+   "image": null
+  },
+  {
+   "name": "WOOLYPOOLY",
+   "url": "https://woolypooly.com/#/coin/erg",
+   "image": null
+  },
+  {
+   "name": "2MINERS",
+   "url": "https://2miners.com/erg-mining-pool",
+   "image": null
+  },
+  {
+   "name": "KRYPTEX",
+   "url": "https://pool.kryptex.com/erg",
+   "image": null
+  },
+  {
+   "name": "K1POOL",
+   "url": "https://k1pool.com/",
+   "image": null
+  },
+  {
+   "name": "Sigmanauts Pool",
+   "url": "https://sigmanauts.com/mining/",
+   "image": null
+  }
+ ]
+}

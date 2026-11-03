@@ -1,0 +1,94 @@
+---
+interface Props {
+  locale: string;
+  description?: string;
+  title?: string;
+  /** full-bleed hero pages opt out of the centered container */
+  wide?: boolean;
+  /** ambient frame/blur layers, which production renders behind <main> */
+  decor?: 'home' | 'discover' | 'geterg' | 'ecosystem' | 'community' | 'blog' | 'post' | 'category';
+}
+
+import { t } from '../i18n';
+import { LOCALE_NAMES, LOCALES, normaliseLocale, type Locale } from '../i18n/config';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import HomeDecor from '../components/HomeDecor.astro';
+import DiscoverDecor from '../components/DiscoverDecor.astro';
+import GetergDecor from '../components/GetergDecor.astro';
+import EcosystemDecor from '../components/EcosystemDecor.astro';
+import CommunityDecor from '../components/CommunityDecor.astro';
+import BlogDecor from '../components/BlogDecor.astro';
+import '../styles/global.css';
+
+const {
+  locale,
+  title,
+  description = 'Ergo is a next-generation smart contract platform focused on secure, accessible, and decentralized financial tools.',
+  wide = false,
+  decor = undefined,
+} = Astro.props;
+
+const loc = normaliseLocale(locale);
+const pageTitle = title ? `${title} | Ergo Platform` : 'Ergo Platform';
+const canonical = new URL(Astro.url.pathname, Astro.site);
+
+/**
+ * Theme is resolved before paint by an inline script, the same approach the live
+ * site uses. Without it a dark-mode reader gets a white flash on every navigation.
+ * It also records the choice on <html> as data-theme, which is what lights the correct
+ * cell of the header's two-cell switch without needing script to run first.
+ */
+const themeInit = `(function(){try{var d=document.documentElement,t=localStorage.getItem('theme'),m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches,dk=t==='dark'||(!t&&m);d.dataset.theme=dk?'dark':'light';if(dk){d.classList.add('dark');d.style.colorScheme='dark'}else{d.classList.remove('dark');d.style.colorScheme='light'}}catch(e){}})();`;
+---
+
+<!doctype html>
+<html lang={loc}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.href} />
+
+    {
+      LOCALES.map((l) => (
+        <link rel="alternate" hreflang={l} href={new URL(`/${l}${Astro.url.pathname.replace(/^\/[a-z]{2}/, '')}`, Astro.site).href} />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={new URL(`/${loc}${Astro.url.pathname.replace(/^\/[a-z]{2}/, '')}`, Astro.site).href} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical.href} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline set:html={themeInit} />
+  </head>
+  <body class="relative">
+    <a class="skip-link" href="#main">{t(loc, 'nav.skipToContent')}</a>
+    {decor === 'home' && <HomeDecor />}
+    {decor === 'discover' && <DiscoverDecor />}
+    {decor === 'geterg' && <GetergDecor />}
+    {decor === 'ecosystem' && <EcosystemDecor />}
+    {decor === 'community' && <CommunityDecor />}
+    {decor === 'blog' && <BlogDecor />}
+    {decor === 'post' && <BlogDecor single />}
+    {decor === 'category' && <BlogDecor showBlur2={false} />}
+    <Header locale={loc} currentPath={Astro.url.pathname} />
+    {/*
+      Content is inset 86px from each edge at a 1440 viewport, matching production;
+      see scripts/measure-header.mjs. Full-bleed pages opt out via `wide`.
+    */}
+    <main
+      id="main"
+      class:list={[wide ? '' : 'mx-auto w-full max-w-[1300px] px-4', 'min-h-screen overflow-hidden']}
+    >
+      <slot />
+    </main>
+    <Footer locale={loc} />
+  </body>
+</html>

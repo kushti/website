@@ -1,0 +1,612 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Contribute from '../../components/home/Contribute.astro';
+import { formatLongDate } from '../../lib/dates';
+import { mediaSrc, postsByLocale, type Post } from '../../lib/content';
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+import wikiIcon from '../../assets/community/icons/comm-social-0.svg?raw';
+import redditIcon from '../../assets/community/icons/comm-social-1.svg?raw';
+import discordIcon from '../../assets/community/icons/comm-social-2.svg?raw';
+import githubIcon from '../../assets/community/icons/comm-social-3.svg?raw';
+import xIcon from '../../assets/community/icons/comm-social-4.svg?raw';
+import telegramIcon from '../../assets/community/icons/comm-social-5.svg?raw';
+import forumIcon from '../../assets/community/icons/comm-social-6.svg?raw';
+import youtubeIcon from '../../assets/community/icons/comm-social-7.svg?raw';
+import sigmanautsArt from '../../assets/community/sigmanauts.svg?raw';
+import authorMark from '../../assets/community/author.svg?raw';
+import teamFallback from '../../assets/community/team-fallback.svg?raw';
+import teamLinkedin from '../../assets/community/icons/team-linkedin.svg?raw';
+import teamTwitter from '../../assets/community/icons/team-twitter.svg?raw';
+import teamGithub from '../../assets/community/icons/team-github.svg?raw';
+import foundationLogoLight from '../../assets/community/foundation-logo-light.svg?raw';
+import foundationLogoDark from '../../assets/community/foundation-logo-dark.svg?raw';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+
+/*
+ * `emission` and `ergo-foundation` only exist in English. Production links the other
+ * locale community pages at `/<locale>/blog/...`, which 404s; sending readers to the
+ * English article keeps every internal link resolvable (and is where the content is).
+ */
+const blogPostHref = (slug: string) =>
+  loc === 'en' ? `/${loc}/blog/${slug}/` : `/en/blog/${slug}/`;
+
+/**
+ * The eight channels, in the live page's order, with production's own icons (extracted
+ * from the rendered DOM). Titles and blurbs come from the message catalogues, which keep
+ * production's English JSX copy and the translations recovered from its bundles.
+ */
+const CHANNELS = [
+  { key: 'Wiki', href: 'https://ergonaut.space/', icon: wikiIcon },
+  {
+    key: 'Reddit',
+    href: 'https://www.reddit.com/r/ergonauts/comments/u22yc9/ecosystem_subreddits/',
+    icon: redditIcon,
+  },
+  {
+    key: 'Discord',
+    href: 'https://discord.gg/ergo-platform-668903786361651200',
+    icon: discordIcon,
+  },
+  { key: 'Github', href: 'https://github.com/ergoplatform', icon: githubIcon },
+  { key: 'Twitter', href: 'https://x.com/Ergo_Platform', icon: xIcon },
+  { key: 'Telegram', href: 'https://t.me/Ergo_Chats', icon: telegramIcon },
+  { key: 'Discourse', href: 'https://www.ergoforum.org/', icon: forumIcon },
+  {
+    key: 'Youtube',
+    href: 'https://www.youtube.com/c/ErgoPlatform/videos',
+    icon: youtubeIcon,
+  },
+];
+
+/**
+ * The feed is the same list as the blog index, newest first. Production renders 95 cards
+ * in a horizontal scroller; only the first few are visible, but the full strip scrolls.
+ */
+const feed = (await postsByLocale(loc, 'blog'))
+  .filter((post) => !post.data.superseded)
+  .slice(0, 95);
+
+/**
+ * Production's card blurb is generated from the article body: the opening is trimmed to
+ * roughly one line and a half and cut back to the last sentence boundary inside it, or at
+ * a word in the middle when the opening has no full stop (the Duckpools card famously ends
+ * in "develop."). Reproduced here so the cards read like the live ones.
+ */
+function excerpt(post: Post): string {
+  const plain = (post.body ?? '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/[*_`>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (plain.length <= 140) return plain;
+  const slice = plain.slice(0, 140);
+  const cut = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('! '), slice.lastIndexOf('? '));
+  if (cut > 0) return slice.slice(0, cut + 1);
+  return `${plain.slice(0, 135).trimEnd()}.`;
+}
+
+/** production formats card dates in the page locale, e.g. "November 28, 2025" */
+function cardDate(post: Post): string {
+  return post.data.date ? formatLongDate(loc, post.data.date) : '';
+}
+
+const allTeam = await getCollection('team');
+
+/**
+ * The live page's CORE tab order is not the CMS id order: Chepurnoy, Oskin, Andy Lowe,
+ * then Dan Friedman. The other two panels are not in the server-rendered DOM, so they use
+ * the CMS id order, which is what the CMS returns for them.
+ */
+const CORE_ORDER = ['Alexander Chepurnoy', 'Ilya Oskin', 'Andy Lowe', 'Dan Friedman'];
+const byCmsId = (a: (typeof allTeam)[number], b: (typeof allTeam)[number]) =>
+  a.data.cmsId - b.data.cmsId;
+
+const teamFor = (role: string) => {
+  const members = allTeam.filter((m) => m.data.role === role);
+  if (role !== 'ecosystem_core') return [...members].sort(byCmsId);
+  return [...members].sort(
+    (a, b) => CORE_ORDER.indexOf(a.data.name) - CORE_ORDER.indexOf(b.data.name),
+  );
+};
+
+const TABS = [
+  { id: 'core', label: t(loc, 'components.hallOfFame.tab1'), members: teamFor('ecosystem_core') },
+  {
+    id: 'community',
+    label: t(loc, 'components.hallOfFame.tab2'),
+    members: teamFor('community'),
+  },
+  {
+    id: 'foundation',
+    label: t(loc, 'components.hallOfFame.tab3'),
+    members: teamFor('ergo_foundation'),
+  },
+];
+
+const SOCIAL_ICONS: Record<string, string> = {
+  linkedin: teamLinkedin,
+  twitter: teamTwitter,
+  github: teamGithub,
+};
+
+/** Dan Friedman has no portrait in production; the silhouette card is what the live page shows. */
+const FALLBACK_MEMBER = 'Dan Friedman';
+
+/**
+ * The foundation introduction and list: production bolds parts of each line. English keeps
+ * the markup; the other catalogues lost the bold words when their bundles were flattened
+ * (they carry a stray "b" placeholder), so those render with the placeholder removed.
+ */
+function foundationText(key: string): string {
+  const raw = t(loc, key);
+  if (loc === 'en') return raw;
+  return raw.replace(/\s*\bb\b\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
+const socials = [
+  { key: 'linkedin', href: 'linkedin' },
+  { key: 'twitter', href: 'twitter' },
+  { key: 'github', href: 'github' },
+] as const;
+
+/** split a "first part -- second part" string from the Sigmanauts copy on production's brbr marker */
+const sigmanautsText = t(loc, 'components.Sigmanauts.text');
+const sigmanautsParts = sigmanautsText.split(/\s*brbr\s*/);
+---
+
+<Base
+  locale={loc}
+  title={t(loc, 'nav.community')}
+  description="The people building Ergo, and the places where the community talks."
+  wide
+  decor="community"
+>
+  <div id="CommunityHero" class="relative z-10 mx-auto mt-16 max-w-[1300px] p-4">
+    <div>
+      <p class="mb-2 font-roboto text-[14px] font-bold text-[#585858] md:mb-3 lg:text-[20px]">
+        {t(loc, 'components.communityHero.subtitle')}
+      </p>
+    </div>
+    <b>
+      <h1
+        class="heading-balance text-[clamp(56px,14vw,120px)] text-black md:text-[100px] lg:text-[120px] dark:text-white"
+      >
+        {t(loc, 'components.communityHero.title')}
+      </h1>
+    </b>
+  </div>
+
+  <div id="JoinUs" class="relative z-10">
+    <div class="mx-auto mt-8 max-w-[1300px] py-2 pl-4 xl:py-8">
+      <div
+        class="no-scrollbar flex space-x-6 overflow-x-auto p-4 2xl:grid 2xl:grid-cols-4 2xl:grid-rows-2 2xl:gap-6 2xl:space-x-0 2xl:overflow-visible 2xl:p-0"
+      >
+        {
+          CHANNELS.map((channel) => (
+            <a href={channel.href} target="_blank" rel="noopener noreferrer">
+              <div class="card-bg relative z-10 rounded-xl border border-gray-200 px-9 py-8 dark:border-brand-orange">
+                <div class="h-28 w-56">
+                  <div class="mb-6 flex">
+                    <span class="mb-auto mt-auto" set:html={channel.icon} />
+                    <span class="mb-auto ml-3 mt-auto">
+                      <p class="font-vinila-extended text-[24px]">
+                        <b>{t(loc, `components.communityHero.${channel.key}.title`)}</b>
+                      </p>
+                    </span>
+                  </div>
+                  <p>{t(loc, `components.communityHero.${channel.key}.text`)}</p>
+                </div>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+    <div class="mx-auto max-w-[1300px] text-center">
+      <p id="ergo-community" class="mb-0 p-4 pb-2 text-sm text-[#585858] md:text-lg">
+        {t(loc, 'components.communitySection.communityHero.text1')}
+      </p>
+      <p id="ergo-social" class="p-4 pt-0 text-sm text-[#585858] md:text-lg">
+        {t(loc, 'components.communitySection.communityHero.text2')}&nbsp;<a
+          href="https://ergonaut.space/en/Ergo/Contributing"
+          target="_blank"
+          rel="noreferrer"
+          class="text-brand-orange underline"
+          >{t(loc, 'components.communitySection.communityHero.linkText')}</a
+        >&nbsp;{t(loc, 'components.communitySection.communityHero.text3')}
+      </p>
+    </div>
+  </div>
+
+  <div class="min-h-[480px]">
+    <div
+      id="Sigmanauts"
+      class="relative z-10 mx-auto mb-44 flex max-w-[1300px] flex-col p-4 md:mb-64 md:mt-36 md:flex-row"
+    >
+      <div class="mb-10 flex justify-end md:my-auto md:w-1/3 2xl:justify-around">
+        <Fragment set:html={sigmanautsArt} />
+      </div>
+      <div class="md:ml-20 md:w-2/3">
+        <h1 class="mb-6 heading-balance text-[clamp(48px,12vw,100px)] md:hidden">
+          <b>{t(loc, 'components.Sigmanauts.title')}</b>
+        </h1>
+        <h2 class="mb-6 hidden heading-balance text-[clamp(48px,12vw,100px)] md:block">
+          <b>{t(loc, 'components.Sigmanauts.title')}</b>
+        </h2>
+        <p class="mb-6 font-vinila-extended-light text-[16px] md:text-[56px]">
+          {t(loc, 'components.Sigmanauts.subTitle')}
+        </p>
+        <p class="mb-6 text-[#666666] dark:text-[#666666]">
+          {
+            sigmanautsParts.map((part, i) => (
+              <>
+                {i > 0 && (
+                  <>
+                    <br />
+                    <br />
+                  </>
+                )}
+                {part.trim()}
+              </>
+            ))
+          }
+        </p>
+        <div class="-ml-6">
+          <a
+            href="https://ergonaut.space/en/Ergo/Contributing"
+            target="_blank"
+            rel="noreferrer"
+            class="link-orange btn inline-flex items-center whitespace-nowrap rounded-full bg-transparent px-4 py-1 font-vinila-extended text-[14px] text-brand-orange underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px]"
+          >
+            <span class="leading-none">{t(loc, 'components.Sigmanauts.button')}</span>
+            <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+              <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+                <path
+                  d="M1 8h16M10 1l7 7-7 7"
+                  stroke="#FF5E18"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"></path>
+              </svg>
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="min-h-[440px]">
+    <Contribute locale={loc} />
+  </div>
+
+  <div class="min-h-[440px]">
+    <div
+      id="Spotlight"
+      class="relative z-10 mx-auto flex max-w-[1300px] flex-col p-4 md:mt-52 md:flex-row"
+    >
+      <h1
+        class="mb-6 text-[clamp(64px,16vw,140px)] leading-[1.1] md:mb-auto md:mt-auto md:hidden"
+      >
+        {t(loc, 'components.Spotlight.title')}
+      </h1>
+      <h3
+        class="mb-6 hidden font-semibold text-[80px] leading-[1.2] md:mb-auto md:mt-auto md:block"
+      >
+        <b>{t(loc, 'components.Spotlight.title')}</b>
+      </h3>
+      <div class="-ml-4 md:mb-auto md:ml-12 md:mt-auto">
+        <a
+          href={`/${loc}/blog/`}
+          class="btn inline-flex items-center whitespace-nowrap rounded-full bg-transparent px-4 py-1 font-vinila-extended text-[14px] text-brand-orange underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px]"
+        >
+          <span class="leading-none">{t(loc, 'components.Spotlight.button')}</span>
+          <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#FF5E18"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <div id="Feed" class="no-scrollbar relative z-12 mt-8 flex space-x-8 overflow-x-auto pb-10">
+      <div class="hidden w-20 flex-shrink-0 md:block"></div>
+      {
+        feed.map((post) => {
+          const img = mediaSrc(post.data.image, 750);
+          const tag = post.data.tags[0];
+          const href = post.data.externalUrl ?? `/${loc}/blog/${encodeURI(post.data.slug)}/`;
+          return (
+            <div class="blog-post group relative z-10 flex h-[520px] w-full flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-transparent shadow-xl transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-2xl">
+              <a class="absolute inset-0 z-10" aria-label={post.data.title} href={href}>
+                <span class="sr-only">{post.data.title}</span>
+              </a>
+              <div class="relative flex-shrink-0">
+                <div class="block leading-none">
+                  <div class="post-image-wrap relative h-[192px] overflow-hidden rounded-t-2xl leading-none">
+                    {img && <img src={img} alt="" loading="lazy" class="h-full w-full object-cover" />}
+                  </div>
+                  {tag && (
+                    <div class="absolute right-4 top-4 z-20">
+                      <a href={`/${loc}/category/${encodeURIComponent(tag)}/`}>
+                        <span class="inline-flex w-fit items-center rounded-full border border-brand-orange-dark bg-brand-orange px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-black md:text-sm">
+                          {tag}
+                        </span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div class="flex flex-1 flex-col justify-start overflow-hidden rounded-b-2xl p-4 md:p-6">
+                <div class="flex-1 text-clip">
+                  <div class="block" role="group" aria-label={post.data.title}>
+                    <p class="mb-2 line-clamp-2 font-roboto text-[20px] text-black dark:text-white">
+                      {post.data.title}
+                    </p>
+                    <p class="mb-2 line-clamp-3 font-roboto text-[16px] leading-snug text-[#585858] dark:text-gray-400">
+                      {excerpt(post)}
+                    </p>
+                  </div>
+                </div>
+                <div class="mt-auto flex items-center gap-2 pt-2">
+                  <div class="flex-shrink-0" set:html={authorMark} />
+                  <div class="ml-3">
+                    <b class="max-w-[140px] truncate text-[16px] text-black dark:text-white">
+                      {post.data.author}
+                    </b>
+                    <div class="flex space-x-1">
+                      <p class="max-w-[160px] truncate whitespace-nowrap text-[16px] text-[#000000] dark:text-white">
+                        {cardDate(post)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })
+      }
+    </div>
+  </div>
+
+  <div class="min-h-[720px]">
+    <div
+      id="HallOfFame"
+      class="relative z-10 mx-auto max-w-[1300px] px-4 py-12 lg:px-4 lg:py-16"
+    >
+      <div class="text-center">
+        <h2
+          class="heading-balance text-[clamp(48px,12vw,100px)] md:text-[100px] lg:text-[120px]"
+        >
+          <b>{t(loc, 'hallOfFame.title')}</b>
+        </h2>
+      </div>
+      <div class="flex flex-row justify-center">
+        <div class="lg:max-w-3xl lg:text-center">
+          <p class="mt-10 text-[#666666] dark:text-[#666666]">
+            {t(loc, 'components.hallOfFame.description1')}
+          </p>
+          <p class="mt-10 text-[#666666] dark:text-[#666666]">
+            {t(loc, 'components.hallOfFame.description2')}
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-16 flex justify-around" role="tablist" aria-orientation="horizontal">
+        {
+          TABS.map((tab, i) => (
+            <button
+              type="button"
+              role="tab"
+              class:list={[
+                'font-roboto text-[16px] uppercase md:text-[24px]',
+                i === 0 ? 'text-brand-orange underline underline-offset-4' : '',
+              ]}
+              aria-selected={i === 0 ? 'true' : 'false'}
+              data-hof-tab={tab.id}
+            >
+              {tab.label}
+            </button>
+          ))
+        }
+      </div>
+
+      <div class="mt-16">
+        {
+          TABS.map((tab, i) => (
+            <div class="outline-none" role="tabpanel" data-hof-panel={tab.id} hidden={i !== 0}>
+              <div class="no-scrollbar mt-8 flex space-x-8 overflow-x-auto pb-10 lg:grid lg:grid-cols-3 lg:justify-around lg:gap-x-8 lg:gap-y-20 lg:space-x-0">
+                {tab.members.map((member) => {
+                  const memberImage =
+                    member.data.name === FALLBACK_MEMBER
+                      ? null
+                      : (member.data.image?.formats?.small?.url ?? member.data.image?.url);
+                  const memberSocials = socials.filter((s) => member.data[s.key]);
+                  return (
+                    <div>
+                      <div class="mx-auto h-[400px] w-56 md:mb-16 lg:w-80">
+                        <div class="flip">
+                          <div class="flip-content h-56 w-56 lg:h-80 lg:w-80">
+                            <div class="flip-front relative h-full w-full object-cover">
+                              {memberImage ? (
+                                <img
+                                  alt="Hall of fame card of the person."
+                                  loading="lazy"
+                                  class="hall-of-fame-person-card h-full w-full object-cover grayscale"
+                                  src={memberImage}
+                                />
+                              ) : (
+                                <Fragment set:html={teamFallback} />
+                              )}
+                            </div>
+                            <div class="flip-back hall-of-fame-person-card flex h-56 w-56 flex-col-reverse lg:h-80 lg:w-80">
+                              <div class="my-auto px-2 lg:px-6">
+                                <p class="text-center align-middle text-xs text-white lg:text-sm">
+                                  {member.data.bio}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="mt-6 flex flex-col">
+                          <div>
+                            <p class="font-vinila-extended text-[16px] lg:text-[24px]">
+                              {member.data.name}
+                            </p>
+                          </div>
+                          {memberSocials.length > 0 && (
+                            <div class="mt-0 -ml-2 flex space-x-4 md:-ml-1 md:mt-6">
+                              {memberSocials.map((s) => (
+                                <a href={member.data[s.key]}>
+                                  <Fragment set:html={SOCIAL_ICONS[s.key]} />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="min-h-[560px]">
+    <div id="ErgoFoundation" class="relative z-10 mx-auto max-w-[1300px] p-4">
+      <div class="mb-14 flex flex-col md:flex-row">
+        <div class="mb-12 md:my-auto">
+          <Fragment set:html={foundationLogoLight} />
+          <Fragment set:html={foundationLogoDark} />
+        </div>
+        <div
+          class="max-w-xs font-vinila-extended text-[24px] leading-tight md:my-auto md:ml-14 md:max-w-[620px] md:text-[56px]"
+          set:html={foundationText('components.ergofoundation.title')}
+        />
+      </div>
+      <div class="flex flex-row-reverse">
+        <div></div>
+        <ul class="ergo-foundation mx-4 list-disc">
+          {
+            [1, 2, 3, 4, 5, 6].map((n) => (
+              <li set:html={foundationText(`components.ergofoundation.list${n}`)} />
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="min-h-[520px]">
+    <div id="Foundation" class="relative z-10 mx-auto max-w-[1300px] p-4">
+      <p class="mb-8 font-vinila-extended-bold text-[40px] md:text-[80px]">
+        {t(loc, 'components.ourmission.title')}
+      </p>
+      <div class="md:mx-auto md:w-[758px]">
+        <p class="mb-8 font-bold text-[#666666] md:max-w-3xl md:text-[24px] dark:text-[#666666]">
+          {t(loc, 'components.ourmission.description')}
+        </p>
+        <a
+          href="https://twitter.com/ergofoundation"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn -ml-6 mb-8 inline-flex items-center whitespace-nowrap rounded-full bg-transparent px-4 py-1 font-vinila-extended text-[14px] text-brand-orange underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px]"
+        >
+          <span class="leading-none">{t(loc, 'components.ourmission.reachus.twitter')}</span>
+          <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#FF5E18"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a><br />
+        <a
+          href={blogPostHref('emission')}
+          class="btn -ml-6 mb-8 inline-flex items-center whitespace-nowrap rounded-full bg-transparent px-4 py-1 font-vinila-extended text-[14px] text-brand-orange underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px]"
+        >
+          <span class="leading-none">{t(loc, 'components.ourmission.emissionAndTokenomics')}</span>
+          <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#FF5E18"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a><br />
+        <a
+          href={blogPostHref('ergo-foundation')}
+          class="btn -ml-6 mb-8 inline-flex items-center whitespace-nowrap rounded-full bg-transparent px-4 py-1 font-vinila-extended text-[14px] text-brand-orange underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px]"
+        >
+          <span class="leading-none">{t(loc, 'components.ourmission.ergofoundation')}</span>
+          <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#FF5E18"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a>
+        <p class="text-[#666666] md:max-w-3xl md:text-[16px] dark:text-[#666666]">
+          {t(loc, 'components.ourmission.subdescription')}
+        </p>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-hof-tab]'));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-hof-panel]'));
+
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.hofTab;
+      for (const other of tabs) {
+        const on = other === tab;
+        other.setAttribute('aria-selected', String(on));
+        other.classList.toggle('text-brand-orange', on);
+        other.classList.toggle('underline', on);
+        other.classList.toggle('underline-offset-4', on);
+      }
+      for (const panel of panels) {
+        panel.toggleAttribute('hidden', panel.dataset.hofPanel !== id);
+      }
+    });
+  }
+</script>

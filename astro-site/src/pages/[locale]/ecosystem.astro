@@ -1,0 +1,573 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PillButton from '../../components/PillButton.astro';
+import RoadmapIcon from '../../components/RoadmapIcon.astro';
+import RaffleWordmark from '../../components/RaffleWordmark.astro';
+import { normaliseLocale } from '../../i18n/config';
+import { t, tr } from '../../i18n';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+
+const roadmaps = await getCollection('roadmaps');
+const dapps = await getCollection('dapps');
+const favorites = (await getCollection('favorites')).sort((a, b) => a.data.cmsId - b.data.cmsId);
+const projects = (await getCollection('projects'))
+  .sort((a, b) => a.data.order - b.data.order)
+  .slice(0, 4);
+
+/*
+ * The CMS `dapps` table has no ordering column, and production's order is neither id nor
+ * date: it follows the campaign landing page that links these seven projects. Keep it
+ * literal; tests/visual comparisons depend on the first six cards' positions.
+ */
+const DAPP_ORDER = [
+  'Ergo Raffle',
+  'duckpools',
+  'SigmaFi',
+  'SigmaUSD',
+  'ErgoMixer',
+  'Ergo Auctions',
+  'ergo.watch',
+];
+const dappsOrdered = [...dapps].sort(
+  (a, b) => DAPP_ORDER.indexOf(a.data.title) - DAPP_ORDER.indexOf(b.data.title),
+);
+
+/*
+ * Production draws the roadmap as four columns: SO FAR and ECOSYSTEM are shipped, IN
+ * PROGRESS and SOON are still in flight. The CMS group ids carry no labels of their own.
+ */
+const ROADMAP_COLUMNS = [
+  { group: 'so_far', label: 'components.roadmap.section1.title' },
+  { group: 'up_next', label: 'components.roadmap.section2.title' },
+  { group: 'soon', label: 'components.roadmap.section3.title' },
+  { group: 'this_year', label: 'components.roadmap.section4.title' },
+];
+const roadmapColumns = ROADMAP_COLUMNS.map((column) => ({
+  ...column,
+  items: roadmaps
+    .filter((r) => (r.data.group ?? 'up_next') === column.group)
+    .sort((a, b) => a.data.order - b.data.order),
+}));
+
+/*
+ * The wiki copy begins with the literal token `link` in every recovered locale — the
+ * live site splits the string and turns the first word into the ergonaut.space anchor.
+ */
+const WIKI_LEAD = /^(link|ergonaut\.space)\s*/;
+const wikiText = t(loc, 'components.wiki.description');
+const wikiLead = wikiText.match(WIKI_LEAD)?.[1] ?? 'ergonaut.space';
+const wikiBody = wikiText.replace(WIKI_LEAD, '');
+const wikiShort = t(loc, 'components.wiki.description.short');
+const wikiShortLead = wikiShort.match(WIKI_LEAD)?.[1] ?? 'ergonaut.space';
+const wikiShortBody = wikiShort.replace(WIKI_LEAD, '');
+const wikiLinkLabel = (lead: string) => (lead === 'link' ? 'ergonaut.space' : lead);
+
+/*
+ * The features heading is hardcoded in production's JSX and appears in no catalogue in
+ * any of the twelve locales, so it is passed as a default rather than looked up.
+ */
+const featuresHeading = tr(
+  loc,
+  'components.featuresAndProjects.title',
+  'NEW FEATURES AND PROJECTS YOU MIGHT LIKE',
+);
+
+/* image treatment for the four feature cards, copied from production */
+const FEATURE_IMAGES = [
+  { box: 'h-[340px] sm:h-[400px] lg:h-[460px]', fit: 'object-cover', bordered: false },
+  { box: 'h-[260px] sm:h-[300px] lg:h-[360px]', fit: 'object-cover', bordered: false },
+  { box: 'h-[240px] sm:h-[260px] lg:h-[280px]', fit: 'object-contain', bordered: true },
+  { box: 'h-[240px] sm:h-[260px] lg:h-[280px]', fit: 'object-contain', bordered: true },
+];
+
+const features = projects.map((project, index) => ({
+  project,
+  image: FEATURE_IMAGES[index] ?? FEATURE_IMAGES[3],
+  span: index === 0 ? 'lg:row-span-2' : index === 1 ? 'lg:col-span-2' : '',
+}));
+---
+
+<Base
+  locale={loc}
+  title={t(loc, 'nav.ecosystem')}
+  description="dApps, projects and the development roadmap of the Ergo ecosystem."
+  wide
+  decor="ecosystem"
+>
+  <div id="EcosystemHero" class="relative z-10 mx-auto max-w-[1300px] p-4">
+    <h1
+      class="heading-balance absolute z-10 text-[clamp(48px,12vw,100px)] md:text-[100px] lg:text-[120px]"
+    >
+      <b>{t(loc, 'components.ecosystemHero.title')}</b>
+    </h1>
+    <div class="ecosystem-hero-gradient mt-16 hidden justify-around md:-mt-10 dark:flex">
+      <img
+        src="/images/ecosystem.png"
+        alt="3D Ergo Logo"
+        width="1100"
+        height="1100"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+    <div class="mt-16 flex justify-around md:-mt-10 dark:hidden">
+      <img
+        src="/images/ecosystem-light.png"
+        alt="3D Ergo Logo"
+        width="1100"
+        height="1100"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  </div>
+
+  <div id="DApps" class="relative z-10 mx-auto -mt-60 max-w-[1300px] p-4 lg:-mt-[600px]">
+    <div class="lg:inline-flex">
+      <h1 class="leading-[1.1] text-[clamp(64px,16vw,140px)]">
+        <b>{t(loc, 'components.dApps.heading')}</b>
+      </h1>
+      <div class="mt-2 flex gap-4 lg:my-auto lg:ml-8">
+        <PillButton href="https://sigmaverse.io/" external>
+          VIEW ALL PROJECTS ON SIGMAVERSE.IO
+        </PillButton>
+      </div>
+    </div>
+
+    <div class="no-scrollbar mt-10 flex space-x-8 overflow-x-auto pb-10">
+      {
+        dappsOrdered.map((dapp) => (
+          <div class="w-[200px]">
+            <a
+              href={dapp.data.url ?? '#'}
+              {...(dapp.data.url ? { target: '_blank', rel: 'noreferrer' } : {})}
+            >
+              <div class="h-[200px] w-[200px]">
+                <img
+                  src={dapp.data.image?.url}
+                  alt={dapp.data.title}
+                  width="220"
+                  height="220"
+                  loading="lazy"
+                  decoding="async"
+                  class="h-[200px] w-[200px]"
+                />
+              </div>
+            </a>
+            <div class="mb-3 mt-6">
+              <a
+                class="font-subtitle-3-bold mb-3"
+                href={dapp.data.url ?? '#'}
+                {...(dapp.data.url ? { target: '_blank', rel: 'noreferrer' } : {})}
+              >
+                {dapp.data.title}
+              </a>
+            </div>
+            <p class="text-[#585858] dark:text-[#666666]">{dapp.data.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  <div id="Roadmap" class="relative z-10 mx-auto max-w-[1300px] p-4">
+    <p class="text-center font-vinila-extended-bold text-[48px] lg:text-[120px]">
+      <b>{t(loc, 'components.roadmap.title')}</b>
+    </p>
+    <p class="mx-auto max-w-lg text-center">
+      {t(loc, 'components.roadmap.description')}
+      <br /><br />
+      <PillButton
+        href="https://docs.ergoplatform.com/roadmap/"
+        variant="secondary"
+        tone="orange"
+        external
+        class="-ml-4 mb-8"
+      >
+        {t(loc, 'components.roadmap.coinmarketcal')}
+      </PillButton>
+    </p>
+
+    <div class="no-scrollbar mt-10 flex space-x-8 overflow-x-auto pb-10">
+      {
+        roadmapColumns.map((column) => (
+          <div class="min-w-[235px] md:w-1/4">
+            <p class="mb-8 text-center text-[16px] font-bold lg:text-[18px]">
+              {t(loc, column.label)}
+            </p>
+            <div>
+              {column.items.map((item) => (
+                <a
+                  href={item.data.url ?? undefined}
+                  {...(item.data.url ? { target: '_blank', rel: 'noreferrer' } : {})}
+                >
+                  <div class="roadmap-item-bg mb-3 flex flex-row rounded-3xl p-3">
+                    <div class="my-auto">
+                      <RoadmapIcon status={item.data.status ?? ''} />
+                    </div>
+                    <div class="my-auto ml-3">
+                      <p class="font-bold underline">{item.data.title}</p>
+                      <p class="text-[#666666] dark:text-[#666666]">{item.data.description}</p>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  <div id="Wiki" class="relative z-10 mx-auto max-w-[1300px] p-4">
+    <div class="hidden md:block">
+      <div class="mb-10 flex flex-row">
+        <p class="font-vinila-extended-bold text-[80px]">{t(loc, 'components.wiki.heading')}</p>
+        <div class="my-auto ml-12">
+          <PillButton
+            href="https://ergonaut.space/"
+            variant="secondary"
+            tone="orange"
+            external
+            class="-ml-4"
+          >
+            EXPLORE
+          </PillButton>
+        </div>
+      </div>
+      <div class="mt-16 justify-around md:-mt-10">
+        <div class="ergonaut-card relative flex h-[349px] w-full flex-row justify-end overflow-hidden">
+          {/*
+            Production centres the copy in the free space left of the artwork and pulls it
+            up/left with negative margins. The measured result is 272px from the card's
+            left edge and 73px from its top, which is what the pinned offsets encode.
+          */}
+          <p
+            class="absolute left-[272px] top-[73px] z-20 hidden w-[512px] text-[20px] leading-[30px] text-white md:block dark:text-white"
+          >
+            <a
+              href="https://ergonaut.space/"
+              target="_blank"
+              rel="noreferrer"
+              class="underline">{wikiLinkLabel(wikiLead)}</a
+            >{' '}{wikiBody}
+          </p>
+          <div class="flex h-full w-[405px] shrink-0 justify-end">
+            <img
+              src="/assets/ecosystem/ergonaut-right.png"
+              alt="The Ergo Mascot, The Ergonaut - is shown standing on a horizontal plane on top of a moon."
+              width="314"
+              height="349"
+              loading="lazy"
+              decoding="async"
+              class="h-full w-auto"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="md:hidden">
+      <p class="mb-6 pl-8 font-vinila-extended-bold text-[96px]">
+        {t(loc, 'components.wiki.heading')}
+      </p>
+      <div class="mb-6 flex flex-col justify-center pl-8">
+        <img
+          src="/assets/ecosystem/ergonaut-right.png"
+          alt="The Ergo Mascot, The Ergonaut - is shown standing on a horizontal plane on top of a moon."
+          width="314"
+          height="349"
+          loading="lazy"
+          decoding="async"
+          class="h-auto w-full rounded-2xl"
+        />
+      </div>
+      <p class="mb-6 pl-8 text-[18px] text-[#666666] dark:text-[#666666]">
+        <a
+          href="https://ergonaut.space/"
+          target="_blank"
+          rel="noreferrer"
+          class="text-lg font-semibold underline">{wikiLinkLabel(wikiShortLead)}</a
+        >{' '}{wikiShortBody}
+      </p>
+      <PillButton
+        href="https://ergonaut.space/"
+        variant="secondary"
+        tone="orange"
+        external
+        class="pl-8"
+      >
+        LEARN MORE
+      </PillButton>
+    </div>
+  </div>
+
+  <div id="Favorites" class="relative z-10 mx-auto max-w-[1300px] p-4" data-favorites>
+    <div class="flex flex-col lg:flex-row lg:gap-8">
+      <div class="lg:flex-1">
+        <svg
+          width="20"
+          height="18"
+          viewBox="0 0 20 18"
+          fill="none"
+          class="mb-6 h-3 pl-8"
+          aria-hidden="true"
+        >
+          <path
+            d="M0 5.4A5.4 5.4 0 0 1 5.5 0 5.991 5.991 0 0 1 10 2a5.991 5.991 0 0 1 4.5-2A5.4 5.4 0 0 1 20 5.4c0 5.356-6.379 9.4-10 12.6C6.387 14.773 0 10.76 0 5.4Z"
+            fill="#FF5E18"></path>
+        </svg>
+        <p class="mb-3 pl-8 text-[24px] font-bold text-[#585858] lg:text-[32px] dark:text-white">
+          {t(loc, 'components.ourFavorites.heading')}
+        </p>
+        <RaffleWordmark />
+        <p class="mb-8 pl-8 text-[16px] text-[#666666] lg:text-[18px] dark:text-[#666666]">
+          {t(loc, 'components.ergoRaffle.description')}
+        </p>
+
+        {/*
+          Production's first pill carries `text-white`, but its unlayered
+          `.btn.bg-brand-orange{color:#000!important}` rule wins, so all three labels are
+          black in the rendered page.
+        */}
+        <a
+          href="https://ergoraffle.com/"
+          target="_blank"
+          rel="noreferrer"
+          class="btn ml-8 inline-flex items-center whitespace-nowrap rounded-full border border-brand-orange-dark bg-brand-orange px-4 py-1 font-vinila-extended text-[14px] text-black shadow-sm transition-transform duration-200 hover:scale-105 md:text-[16px]"
+        >
+          <span class="leading-none"><b>{t(loc, 'components.favorites.button1')}</b></span>
+          <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#000"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a>
+        <a
+          href="http://fund.mewfinance.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn ml-8 mt-6 inline-flex items-center whitespace-nowrap rounded-full border border-brand-orange-dark bg-brand-orange px-4 py-1 font-vinila-extended text-[14px] text-black shadow-sm transition-transform duration-200 hover:scale-105 md:text-[16px]"
+        >
+          <span class="leading-none">{t(loc, 'components.favorites.mewFund')}</span>
+          <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#000"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a>
+        <a
+          href="https://docs.ergoplatform.com/eco/ergoraffle/#v2"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn ml-8 mt-6 inline-flex items-center whitespace-nowrap rounded-full border border-brand-orange-dark bg-brand-orange px-4 py-1 font-vinila-extended text-[14px] text-black shadow-sm transition-transform duration-200 hover:scale-105 md:text-[16px]"
+        >
+          <span class="leading-none">{t(loc, 'components.favorites.raffleV2')}</span>
+          <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#000"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a>
+      </div>
+
+      {/*
+        Production mounts a two-slide Swiper here. The measured geometry is a single
+        845px-wide viewport with the inactive slide parked off-screen, so a translated
+        flex track with the same slide/card classes reproduces it without Swiper's JS.
+      */}
+      <div class="lg:w-2/3 lg:shrink-0">
+        <div class="relative overflow-hidden">
+          <div class="flex transition-transform duration-300" data-favorites-track>
+            {
+              favorites.map((favorite, index) => (
+                <div class="mb-8 w-full shrink-0">
+                  <div class="favorite-card mx-1 my-6 min-h-[335px] rounded-2xl bg-white/60 p-6 ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-lg dark:border dark:border-white/10 dark:bg-zinc-900/40 dark:ring-white/10">
+                    <div class="relative mb-8 flex justify-center lg:justify-end">
+                      <img
+                        src={favorite.data.image?.url}
+                        alt=""
+                        width={favorite.data.image?.width}
+                        height={favorite.data.image?.height}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      {favorite.data.subtitle && (
+                        <span class="absolute right-4 top-4 inline-flex w-fit items-center rounded-full border border-brand-orange-dark bg-brand-orange px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-white md:text-sm">
+                          {favorite.data.subtitle}
+                        </span>
+                      )}
+                    </div>
+                    <p class="heading-balance mb-2 font-vinila-extended-bold text-[clamp(28px,7vw,48px)]">
+                      {favorite.data.title}
+                    </p>
+                    <p class="mb-6 text-[14px] text-[#666666] dark:text-[#666666]">
+                      {favorite.data.description}
+                    </p>
+                    <div>
+                      <a
+                        href={favorite.data.url ?? '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={favorite.data.buttonText ?? undefined}
+                        class="btn inline-flex items-center whitespace-nowrap rounded-full border border-brand-orange-dark bg-transparent px-4 py-1 font-vinila-extended text-[14px] text-brand-orange underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px] dark:text-white"
+                      >
+                        <span class="leading-none">{favorite.data.buttonText}</span>
+                      </a>
+                    </div>
+                  </div>
+                  <span class="sr-only">{`Slide ${index + 1}`}</span>
+                </div>
+              ))
+            }
+          </div>
+          <div class="absolute bottom-2 left-0 flex w-full justify-center gap-2">
+            {
+              favorites.map((favorite, index) => (
+                <button
+                  type="button"
+                  class:list={['favorite-bullet', index === 0 && 'is-active']}
+                  data-favorites-dot
+                  aria-label={`Show ${favorite.data.title}`}
+                />
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section
+    id="FeaturesAndProjects"
+    aria-labelledby="features-projects-title"
+    class="relative z-10 mx-auto max-w-[1300px] p-4"
+  >
+    <h2
+      id="features-projects-title"
+      class="mb-6 pl-8 text-[32px] font-bold uppercase tracking-widest text-[#585858] dark:text-white"
+    >
+      {featuresHeading}
+    </h2>
+    <div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-flow-dense lg:grid-cols-3">
+        {
+          features.map(({ project, image, span }) => (
+            <a
+              class:list={[
+                'group relative flex h-full flex-col overflow-visible rounded-3xl bg-white/60 p-5 pb-0 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange/50 md:p-6 md:pb-0 dark:bg-zinc-900/40 dark:ring-white/10',
+                span,
+              ]}
+              aria-label={`Open ${project.data.title}`}
+              target="_blank"
+              rel="noreferrer"
+              href={project.data.url ?? '#'}
+            >
+              <div
+                class:list={[
+                  'relative w-full overflow-hidden rounded-2xl p-0',
+                  image.box,
+                  image.bordered &&
+                    'border border-gray-200/50 bg-white/40 p-2 sm:p-3 md:p-4 dark:border-white/10 dark:bg-zinc-800/50',
+                ]}
+              >
+                <img
+                  src={project.data.image?.url}
+                  alt={project.data.title}
+                  decoding="async"
+                  loading="lazy"
+                  class:list={[
+                    'pointer-events-none absolute inset-0 h-full w-full select-none transition-transform duration-500 group-hover:scale-[1.03]',
+                    image.fit,
+                  ]}
+                />
+              </div>
+              <div class="mt-6 flex flex-1 flex-col gap-y-2 md:gap-y-3">
+                <span class="inline-flex w-fit items-center rounded-full border border-gray-200/50 bg-white/70 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#585858] md:text-sm dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
+                  {project.data.group}
+                </span>
+                <h4 class="line-clamp-2 pl-2.5 font-roboto text-[32px] font-bold leading-tight heading-balance">
+                  {project.data.title}
+                </h4>
+                <p class="line-clamp-3 pl-2.5 text-base text-[#666666] md:text-[17px] md:leading-6 dark:text-[#666666]">
+                  {project.data.description}
+                </p>
+              </div>
+              <div class="-mx-5 mt-auto pt-3 md:-mx-6">
+                <div class="flex items-center justify-between rounded-b-3xl border border-brand-orange-dark bg-brand-orange px-5 py-3 text-white transition-colors hover:bg-[#ff6e32] md:px-6">
+                  <span class="font-vinila-extended text-[14px] md:text-[16px]">
+                    {project.data.buttonText}
+                  </span>
+                  <svg
+                    width="18"
+                    height="16"
+                    viewBox="0 0 18 16"
+                    fill="none"
+                    class="ml-2 h-4 w-4 flex-shrink-0 md:h-5 md:w-5"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M1 8h16M10 1l7 7-7 7"
+                      stroke="#fff"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"></path>
+                  </svg>
+                </div>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <script>
+    /*
+     * Two-slide favourites carousel. Production uses Swiper; the only behaviour that is
+     * visible is the dot pagination, so a transform on the track is enough.
+     */
+    document.querySelectorAll('[data-favorites]').forEach((root) => {
+      const track = root.querySelector<HTMLElement>('[data-favorites-track]');
+      const dots = Array.from(root.querySelectorAll<HTMLElement>('[data-favorites-dot]'));
+      if (!track || dots.length === 0) return;
+
+      const go = (index: number) => {
+        track.style.transform = `translateX(-${index * 100}%)`;
+        dots.forEach((dot, dotIndex) => dot.classList.toggle('is-active', dotIndex === index));
+      };
+
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => go(index));
+      });
+    });
+  </script>
+</Base>

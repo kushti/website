@@ -1,0 +1,112 @@
+---
+/**
+ * The section header used by the index pages.
+ *
+ * Production gives each of these a 96px title in the bold cut of its display face over an
+ * orange gradient wash, sometimes with 3D artwork bleeding off the right edge. The title
+ * size is from scripts/measure-fonts.mjs; the artwork is a static file where one exists.
+ */
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  /** artwork filename under /images, shown bleeding to the right */
+  artwork?: string;
+  /** 'right' puts the artwork behind the title (blog); 'below' stacks it (ecosystem) */
+  artworkPosition?: 'right' | 'below';
+  eyebrow?: string;
+  /**
+   * Title size. Production varies it by page — 140px on the blog and category indexes,
+   * 120px on /get-erg/ — so the caller picks rather than the component guessing.
+   */
+  size?: 'display-140' | 'display-120' | 'display-96' | 'display-80';
+  /**
+   * 'right' matches the index heroes, where production sets the title against the right
+   * edge with the artwork behind it. 'left' is the default for the section pages.
+   */
+  align?: 'left' | 'right';
+}
+
+const {
+  title,
+  subtitle,
+  artwork,
+  artworkPosition = 'right',
+  eyebrow,
+  size = 'display-120',
+  align = 'left',
+} = Astro.props;
+
+const art = artwork ? `/images/${artwork}` : null;
+---
+
+<section
+  class:list={[
+    'relative overflow-hidden',
+    artwork && artworkPosition === 'below'
+      ? 'bg-gradient-to-br from-white via-[#ffe7d9] to-[#ffc9a8] dark:from-black dark:via-[#1a0f08] dark:to-[#2a1408]'
+      : 'bg-gradient-to-r from-white via-[#ffe7d9] to-[#ffd9bd] dark:from-black dark:via-[#1a0f08] dark:to-[#2a1408]',
+  ]}
+>
+  {
+    art && (
+      <img
+        src={art}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        class:list={[
+          'pointer-events-none absolute select-none object-contain',
+          artworkPosition === 'below'
+            ? '-top-10 right-0 hidden h-full max-h-[520px] opacity-95 md:block'
+            : 'top-1/2 right-0 hidden h-[135%] max-h-none -translate-y-1/2 object-right opacity-95 md:block',
+          'dark:hidden',
+        ]}
+      />
+    )
+  }
+  {
+    art && (
+      <img
+        src={art.replace('-light', '')}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        class:list={[
+          'pointer-events-none absolute hidden select-none object-contain dark:block',
+          artworkPosition === 'below'
+            ? '-top-10 right-0 h-full max-h-[520px] opacity-95'
+            : 'top-1/2 right-0 h-[135%] max-h-none -translate-y-1/2 object-right opacity-95 md:block',
+        ]}
+      />
+    )
+  }
+
+  <div class="relative z-10 mx-auto w-full max-w-[1300px] px-4">
+    <div class:list={['py-12 md:py-16', artwork ? 'md:min-h-[320px]' : '']}>
+      {/*
+        Production's index heroes set the title right-aligned and let the artwork sit behind
+        it on the left. `align` is opt-in because the section pages put theirs on the left.
+      */}
+      <h1 class:list={[size, align === 'right' ? 'text-right' : '']}>{title}</h1>
+      {
+        eyebrow && (
+          <p class="kicker">{eyebrow}</p>
+        )
+      }
+      {
+        subtitle && (
+          <p
+            class:list={[
+              'mt-4 max-w-[60ch] text-[var(--fg-muted)] md:text-lg',
+              align === 'right' ? 'ml-auto text-right' : '',
+            ]}
+          >
+            {subtitle}
+          </p>
+        )
+      }
+      <slot />
+    </div>
+  </div>
+</section>

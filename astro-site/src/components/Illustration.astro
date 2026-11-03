@@ -1,0 +1,46 @@
+---
+/**
+ * A recovered illustration, rendered as a pair of <img> so the theme class can pick the
+ * cut. Decorative by default — production's artwork carries no text that matters, so it
+ * gets an empty alt unless a caller says otherwise.
+ *
+ * The width is set inline rather than through a class: the recovered SVGs carry a viewBox
+ * but no intrinsic width, so `width: auto` on them does not resolve to the width attribute
+ * and the browser picks its own size.
+ */
+import { ILLUSTRATIONS, type IllustrationName } from '../lib/illustrations';
+
+interface Props {
+  name: IllustrationName;
+  /** rendered width in px; height follows the intrinsic ratio */
+  width?: number;
+  alt?: string;
+  class?: string;
+}
+
+const { name, width = 420, alt, class: className = '' } = Astro.props;
+const art = ILLUSTRATIONS[name];
+const height = Math.round(width / art.ratio);
+const size = `width:${width}px;height:auto`;
+---
+
+<img
+  src={art.light}
+  alt={alt ?? art.alt}
+  width={width}
+  height={height}
+  aria-hidden={alt ? undefined : 'true'}
+  decoding="async"
+  style={size}
+  class:list={['dark:hidden', className]}
+/>
+<img
+  src={art.dark}
+  alt=""
+  width={width}
+  height={height}
+  aria-hidden="true"
+  decoding="async"
+  style={size}
+  class:list={['hidden dark:block', className]}
+/>

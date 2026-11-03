@@ -1,0 +1,24 @@
+---
+/*
+ * Production's blog ambient artwork, from the live stylesheet's `.blog-*` rules.
+ * The index, category and pagination pages use all five layers; a single post uses
+ * the same stack minus the lower-right blur and with the cube frame near the top-left
+ * (`.single-post .blog-frame-1`).
+ */
+interface Props {
+  single?: boolean;
+  /** category pages use the same stack as the index but omit the lower-right blur */
+  showBlur2?: boolean;
+}
+
+const { single = false, showBlur2 = true } = Astro.props;
+---
+
+<div class:list={['page-decor', single && 'single-post']} aria-hidden="true">
+  <div class="blog-frame-1 hidden md:block dark:hidden"></div>
+  <div class="blog-frame-1 hidden dark:md:block"></div>
+  <div class="blog-frame-2 hidden md:block"></div>
+  <div class="blog-frame-3 hidden md:block"></div>
+  <div class="blog-blur-1 hidden md:block"></div>
+  {!single && showBlur2 && <div class="blog-blur-2 hidden md:block"></div>}
+</div>

@@ -1,0 +1,21 @@
+---
+cmsId: 1511
+title: Decentralized Exchange Contracts on Ergo
+slug: 2020-08-03-decentralized-exchange-contracts-on-ergo
+type: news
+locale: en
+date: "2020-07-31T17:57:32.07"
+publishedAt: "2022-04-30T11:22:15.449"
+updatedAt: "2022-04-30T11:22:15.471"
+author: Ergo Platform
+tags: []
+spotlight: false
+subtitle: Ergo has expressive smart contracts and transactional model which allows for an implementation of trustless DEX protocol, in which signed buy and sell orders can be put into the blockchain independently by buyers and sellers.
+image: null
+authorPhoto: null
+blogPhoto: null
+externalUrl: "https://ergoplatform.org/en/blog/2020-07-31-decentralized-exchange-contracts-on-ergo/"
+superseded: false
+---
+
+

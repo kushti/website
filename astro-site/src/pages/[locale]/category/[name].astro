@@ -1,0 +1,48 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import CategoryList from '../../../components/CategoryList.astro';
+import { postsWithTag } from '../../../lib/content';
+import { normaliseLocale } from '../../../i18n/config';
+import { t } from '../../../i18n';
+
+/**
+ * Category pages.
+ *
+ * The live site serves these at /<locale>/category/<name> with names used as-is,
+ * including spaces, so the route segment is taken from the post tag verbatim.
+ */
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../../i18n/config');
+  const posts = await getCollection('posts');
+  const tagsByLocale = new Map<string, Set<string>>();
+  for (const p of posts) {
+    if (!tagsByLocale.has(p.data.locale)) tagsByLocale.set(p.data.locale, new Set());
+    const set = tagsByLocale.get(p.data.locale)!;
+    for (const tag of p.data.tags) set.add(tag);
+  }
+
+  const paths: { params: { locale: string; name: string }; props: { name: string } }[] = [];
+  for (const locale of LOCALES) {
+    const tags = [...(tagsByLocale.get(locale) ?? [])].sort();
+    for (const name of tags) {
+      paths.push({ params: { locale, name }, props: { name } });
+    }
+  }
+  return paths;
+}
+
+const { locale, name } = Astro.params as { locale: string; name: string };
+const loc = normaliseLocale(locale);
+
+const matching = await postsWithTag(loc, name);
+---
+
+<Base locale={loc} wide decor="category" title={`${name} — ${t(loc, 'nav.blog')}`} description={`Posts tagged ${name}`}>
+  <CategoryList locale={loc} name={name} posts={matching} />
+</Base>

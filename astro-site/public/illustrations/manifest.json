@@ -1,0 +1,12 @@
+{
+ "note": "Illustrations production inlines in its served HTML, recovered by scripts/fetch-illustrations.py. Only the /discover/ hero survived: the mascot and the big Sigma on every page belong to the chat widget production embeds, not to the site.",
+ "items": [
+  {
+   "name": "discoverHero",
+   "light": "discover-hero-light.svg",
+   "dark": "discover-hero-dark.svg",
+   "viewBox": "0 0 1011 811",
+   "page": "/en/discover/"
+  }
+ ]
+}

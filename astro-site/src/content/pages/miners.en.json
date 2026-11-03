@@ -1,0 +1,30 @@
+{
+ "note": "recovered from the rendered ergoplatform.org /en/get-erg/ page",
+ "items": [
+  {
+   "name": "RIGEL",
+   "url": "https://github.com/rigelminer/rigel",
+   "image": null
+  },
+  {
+   "name": "NANOMINER",
+   "url": "https://github.com/nanopool/nanominer/releases",
+   "image": null
+  },
+  {
+   "name": "NBMINER",
+   "url": "https://github.com/NebuTech/NBMiner/releases",
+   "image": null
+  },
+  {
+   "name": "SRBMINER-MULTI",
+   "url": "https://github.com/doktor83/SRBMiner-Multi/releases",
+   "image": null
+  },
+  {
+   "name": "TEAM RED MINER",
+   "url": "https://github.com/todxx/teamredminer/releases/",
+   "image": null
+  }
+ ]
+}

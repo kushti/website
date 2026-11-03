@@ -1,0 +1,153 @@
+---
+/**
+ * UNSTOPPABLE DEFI / GET ERG — the four ways in: mine it, buy it, store it, use it.
+ *
+ * Production pairs each step with a bespoke line illustration. Those SVGs are copied out
+ * of its DOM into public/artwork/using-erg/ (light and dark variants), so the cards match
+ * the live hand-drawn artwork instead of the generic glyphs used before.
+ *
+ * Geometry is production's: the section is the 1300px measure, the copy column takes 30%
+ * and the four 612px-tall cards share the rest, 32px apart.
+ */
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const loc = normaliseLocale(locale);
+
+/**
+ * The four steps, in order, with the destinations read off the rendered page.
+ *
+ * The titles are the verbs production shows here ("Mine It", "Buy It" and so on). The
+ * `components.getErg.*.title` messages are the labels the /get-erg/ page uses for the same
+ * four things — "Exchanges", "Wallets", "Ecosystem" — so they are deliberately not used
+ * on the home page.
+ */
+const STEPS = [
+  {
+    title: 'Mine It',
+    text: 'components.getErg.MineIt.text',
+    href: `/${loc}/get-erg/#Mining`,
+    art: 'mine',
+  },
+  {
+    title: 'Buy It',
+    text: 'components.getErg.BuyIt.text',
+    href: `/${loc}/get-erg/#Exchanges`,
+    art: 'buy',
+  },
+  {
+    title: 'Store It',
+    text: 'components.getErg.StoreIt.text',
+    href: `/${loc}/get-erg/#Wallets`,
+    art: 'store',
+  },
+  {
+    title: 'Use It',
+    text: 'components.getErg.UseIt.text',
+    href: `/${loc}/ecosystem/`,
+    art: 'use',
+  },
+];
+---
+
+<section id="GetErg" class="relative z-[13] mx-auto max-w-[1300px] scroll-mt-24 px-4 py-12 lg:pt-16 lg:pb-[72px]">
+  <div class="px-4">
+    <div class="flex flex-col justify-between xl:flex-row">
+      <div class="mt-10 flex w-full flex-shrink-0 flex-col items-start lg:mb-0 lg:ml-12 lg:max-w-[30%]">
+        <p class="mb-6 text-left font-bold text-black dark:text-white">
+          {t(loc, 'components.usingErg.subtitle')}
+        </p>
+        <h2 class="display-96 text-left leading-none">
+          GET<br />ERG
+        </h2>
+        <p class="mt-6 mr-4 max-w-xs text-left text-black md:text-lg lg:text-xl dark:text-white">
+          {t(loc, 'components.usingErg.description')}
+        </p>
+      </div>
+
+      <div class="relative mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-8 xl:ml-12 xl:grid-cols-4">
+        {
+          STEPS.map((step) => (
+            <a href={step.href}>
+              <div class="using-erg-card flex h-[630px] cursor-pointer flex-col justify-between p-4 transition-all duration-300 md:h-[612px]">
+                <div class="mt-8 flex w-full flex-col items-center pt-2 pb-4 text-center">
+                  <p class="mb-2 font-display text-2xl leading-7 md:text-xl">{step.title}</p>
+                  <p class="text-base">{t(loc, step.text)}</p>
+                </div>
+                <div class="flex w-full flex-1 items-end justify-center pb-2">
+                  <img
+                    src={`/artwork/using-erg/${step.art}-light.svg`}
+                    alt=""
+                    width="320"
+                    height="320"
+                    loading="lazy"
+                    decoding="async"
+                    class="using-erg-icon h-[320px] w-full max-w-[320px] object-contain dark:hidden"
+                  />
+                  <img
+                    src={`/artwork/using-erg/${step.art}-dark.svg`}
+                    alt=""
+                    width="320"
+                    height="320"
+                    loading="lazy"
+                    decoding="async"
+                    class="using-erg-icon hidden h-[320px] w-full max-w-[320px] object-contain dark:block"
+                  />
+                </div>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* production's card treatment, lifted from its stylesheet */
+  .using-erg-card {
+    position: relative;
+    border-radius: 28px;
+    border: 1.5px solid #f2f2f2;
+    background: linear-gradient(120deg, #fff 60%, #f6f6f6);
+    box-shadow: 0 2px 12px rgb(214 214 214 / 0.18);
+    transition:
+      transform 0.25s cubic-bezier(0.4, 2, 0.6, 1),
+      box-shadow 0.25s cubic-bezier(0.4, 2, 0.6, 1),
+      background 0.25s,
+      border 0.25s;
+  }
+
+  .using-erg-card:hover {
+    transform: translateY(-4px);
+    background: linear-gradient(120deg, #fff 40%, #ffe7d9);
+    border: 2px solid #ff5e18;
+    box-shadow:
+      0 12px 36px 0 rgb(255 94 24 / 0.13),
+      0 4px 19px rgb(214 214 214 / 0.22);
+  }
+
+  .using-erg-card .using-erg-icon {
+    transition: transform 0.25s cubic-bezier(0.4, 2, 0.6, 1);
+  }
+
+  .using-erg-card:hover .using-erg-icon {
+    transform: translateY(-6px);
+  }
+
+  .dark .using-erg-card {
+    border-color: #2a2a2a;
+    background: linear-gradient(120deg, #1b1b1b 60%, #141414);
+    box-shadow: none;
+  }
+
+  .dark .using-erg-card:hover {
+    border-color: #ff5e18;
+    background: linear-gradient(120deg, #1b1b1b 40%, #2a1608);
+  }
+</style>

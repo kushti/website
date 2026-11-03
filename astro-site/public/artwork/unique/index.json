@@ -1,0 +1,34 @@
+[
+ {
+  "n": 1,
+  "heading": "RESEARCH-LED AND REAL-WORLD FOCUSED",
+  "file": "public/artwork/unique/card-1.svg",
+  "rendered": "290x150",
+  "cardBox": "358x670",
+  "cardBg": "rgba(0, 0, 0, 0)"
+ },
+ {
+  "n": 2,
+  "heading": "POWERFUL AND SAFE",
+  "file": "public/artwork/unique/card-2.svg",
+  "rendered": "148x151",
+  "cardBox": "358x715",
+  "cardBg": "rgba(0, 0, 0, 0)"
+ },
+ {
+  "n": 3,
+  "heading": "INTELLIGENT AND STRAIGHTFORWARD",
+  "file": "public/artwork/unique/card-3.svg",
+  "rendered": "151x150",
+  "cardBox": "358x742",
+  "cardBg": "rgba(0, 0, 0, 0)"
+ },
+ {
+  "n": 4,
+  "heading": "SECURE AND ACCESSIBLE",
+  "file": "public/artwork/unique/card-4.svg",
+  "rendered": "140x151",
+  "cardBox": "358x715",
+  "cardBg": "rgba(0, 0, 0, 0)"
+ }
+]

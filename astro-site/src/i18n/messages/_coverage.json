@@ -1,0 +1,117 @@
+{
+  "de": {
+    "total": 291,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 41,
+    "missing": []
+  },
+  "en": {
+    "total": 250,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 0,
+    "missing": []
+  },
+  "es": {
+    "total": 291,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 41,
+    "missing": []
+  },
+  "hu": {
+    "total": 286,
+    "missingFromEnglish": 2,
+    "onlyInThisLocale": 38,
+    "missing": [
+      "components.usingErg.description",
+      "components.usingErg.subtitle"
+    ]
+  },
+  "id": {
+    "total": 256,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 6,
+    "missing": []
+  },
+  "it": {
+    "total": 291,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 41,
+    "missing": []
+  },
+  "pl": {
+    "total": 291,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 41,
+    "missing": []
+  },
+  "pt": {
+    "total": 291,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 41,
+    "missing": []
+  },
+  "ru": {
+    "total": 291,
+    "missingFromEnglish": 0,
+    "onlyInThisLocale": 41,
+    "missing": []
+  },
+  "sk": {
+    "total": 216,
+    "missingFromEnglish": 35,
+    "onlyInThisLocale": 1,
+    "missing": [
+      "blog.media.read",
+      "blog.news.read",
+      "blog.post.backToAll",
+      "blog.post.machineTranslated",
+      "blog.post.sharePost",
+      "blog.post.translationUnavailable",
+      "categoryPicker.categories",
+      "common.close",
+      "common.next",
+      "common.previous",
+      "components.blogNews.end",
+      "components.blogNews.loading",
+      "components.ergoExplorer.blockchainExplorers",
+      "components.ergoExplorer.description",
+      "components.ergoExplorer.ergExplorerAltFrontend",
+      "components.ergoExplorer.ergoExplorer",
+      "components.ergoExplorer.sigmaSpaceAltBackend",
+      "components.faq.loading",
+      "components.featureCard.noImage",
+      "components.mining.calculator.mhs",
+      "components.mining.calculator.placeholder",
+      "components.mining.calculator.ths",
+      "components.news.latestAria",
+      "components.news.newBadge",
+      "components.news.none",
+      "components.news.viewAll",
+      "pages.media.title",
+      "routeSpinner.translating",
+      "routeSpinner.translatingEllipsis",
+      "secondaryMenu.blog",
+      "secondaryMenu.documentation",
+      "secondaryMenu.exchanges",
+      "secondaryMenu.roadmap",
+      "secondaryMenu.sigmaverse",
+      "secondaryMenu.wallets"
+    ]
+  },
+  "tr": {
+    "total": 265,
+    "missingFromEnglish": 1,
+    "onlyInThisLocale": 16,
+    "missing": [
+      "components.usingErg.subtitle"
+    ]
+  },
+  "zh": {
+    "total": 292,
+    "missingFromEnglish": 1,
+    "onlyInThisLocale": 43,
+    "missing": [
+      "components.usingErg.subtitle"
+    ]
+  }
+}

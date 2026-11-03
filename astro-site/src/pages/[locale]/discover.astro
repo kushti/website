@@ -1,0 +1,347 @@
+---
+import { getCollection } from 'astro:content';
+import { createMarkdownProcessor } from '@astrojs/markdown-remark';
+import remarkGfm from 'remark-gfm';
+import Base from '../../layouts/Base.astro';
+import PillButton from '../../components/PillButton.astro';
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+
+const faqs = (await getCollection('faqs')).sort((a, b) => a.data.order - b.data.order);
+const docs = (await getCollection('documents')).sort((a, b) => a.data.title.localeCompare(b.data.title));
+
+/** documents are grouped by the `group` column in the CMS; production shows four groups */
+const GROUP_ORDER = ['Foundational Papers', 'Other', 'Presentations', 'Whitepaper'];
+const grouped = GROUP_ORDER.map(
+  (name) => [name, docs.filter((d) => (d.data.group ?? 'Other') === name)] as const,
+).filter(([, items]) => items.length > 0);
+
+/**
+ * FAQ answers are markdown strings in the CMS; production renders them as HTML. The
+ * accordion shows the first answer and keeps the rest collapsed, like the live page.
+ */
+const md = await createMarkdownProcessor({ remarkPlugins: [remarkGfm] });
+const faqHtml = new Map<string, string>();
+for (const f of faqs) {
+  faqHtml.set(f.id, (await md.render(f.data.answer)).code);
+}
+
+/**
+ * Section ids match the live site's exactly — DiscoverERG, GrantsAndBounties, FAQ,
+ * Explore, Documents — because the footer, the home page and external articles all link
+ * to them with fragments.
+ */
+
+/**
+ * The manifesto is hardcoded to the English post, as it is on the live site: only `en`
+ * has a translation of it in the archive, so a locale-relative URL would dead-end on the
+ * other eleven. `/category/devs/` is served by the live site but has no row in the
+ * exported category table, so "CHECK THE BLOG" goes to the blog index and the old URL
+ * redirects there — see scripts/write-redirects.mjs.
+ */
+const HERO_LINKS = [
+  {
+    key: 'components.discoverHero.button3',
+    href: '/en/blog/2021-04-26-the-ergo-manifesto/',
+  },
+  {
+    key: 'components.discoverHero.button1',
+    href: 'https://docs.ergoplatform.com/',
+    external: true,
+  },
+  {
+    key: 'components.discoverHero.button2',
+    href: 'https://www.youtube.com/channel/UCyOIxD7YSHN5QwLIulOWrew/playlists',
+    external: true,
+  },
+  { key: 'components.discoverHero.button4', href: `/${loc}/blog/` },
+];
+
+const EXPLORERS = [
+  { key: 'components.ergoExplorer.ergoExplorer', href: 'https://explorer.ergoplatform.com/' },
+  { key: 'components.ergoExplorer.sigmaSpaceAltBackend', href: 'https://sigmaspace.io/en' },
+  { key: 'components.ergoExplorer.ergExplorerAltFrontend', href: 'https://ergexplorer.com' },
+];
+---
+
+<Base
+  locale={loc}
+  title={t(loc, 'nav.discover')}
+  description="Foundational papers, technical documentation and answers to common questions about the Ergo platform."
+  wide
+  decor="discover"
+>
+  {/*
+    Hero. Production puts a two-column grid in a 1300px measure: the 600x600 cube on
+    the right, the copy stacked on the left with one underlined pill per action.
+  */}
+  <div id="DiscoverERG" class="relative z-10 mx-auto max-w-[1300px] p-4">
+    <div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
+      <div class="xl:order-2">
+        <img
+          src="/illustrations/discover-hero-light.svg"
+          alt=""
+          width="1011"
+          height="811"
+          class="mx-auto h-96 w-96 object-contain dark:hidden md:h-[550px] md:w-[700px] xl:h-[600px] xl:w-[600px]"
+        />
+        <img
+          src="/illustrations/discover-hero-dark.svg"
+          alt=""
+          width="1011"
+          height="811"
+          class="mx-auto hidden h-96 w-96 object-contain dark:block md:h-[550px] md:w-[700px] xl:h-[600px] xl:w-[600px]"
+        />
+      </div>
+
+      <div class="xl:order-1">
+        <h1 class="display-120-bold max-w-[320px] leading-tight">
+          {t(loc, 'components.discoverHero.title')}
+        </h1>
+        <p class="mt-6 max-w-[320px] text-[#666666]">
+          {t(loc, 'components.discoverErgo.text.1')}
+        </p>
+        {
+          HERO_LINKS.map((l) => (
+            <div class="mt-10">
+              <PillButton
+                href={l.href}
+                variant="secondary"
+                tone="orange"
+                {...(l.external ? { external: true } : {})}
+              >
+                {t(loc, l.key)}
+              </PillButton>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="xl:order-3">
+        <h2 class="display-120-bold max-w-[320px] leading-tight">
+          {t(loc, 'components.software.heading')}
+        </h2>
+        <p class="mt-6 max-w-[320px] text-[#666666]">
+          {t(loc, 'components.software.description')}
+        </p>
+        <div class="mt-10">
+          <PillButton href="https://docs.ergoplatform.com/node/install/" variant="secondary"
+                tone="orange" external>
+            {t(loc, 'components.discoverHero.button5')}
+          </PillButton>
+        </div>
+      </div>
+
+      <div class="xl:order-4">
+        <div class="mt-16 sm:ml-28 xl:mt-0">
+          <h2 class="display-120-bold max-w-[320px] leading-tight">
+            {t(loc, 'components.learn.heading')}
+          </h2>
+          <p class="mt-6 max-w-[320px] text-[#666666]">{t(loc, 'components.learn.description')}</p>
+          <div class="mt-10">
+            <PillButton href="https://ergonaut.space" variant="secondary"
+                tone="orange" external>
+              {t(loc, 'components.discoverHero.button6')}
+            </PillButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Grants & Bounties: heading in a 288px indented 980px column, copy and actions to its right. */}
+  <div id="GrantsAndBounties" class="relative z-10 mx-auto mt-40 max-w-[1300px] p-4">
+    <h1 class="display-140 xl:ml-72">
+      {t(loc, 'components.grantsAndBounties.heading')}
+    </h1>
+    <p class="mt-6 max-w-xs text-[#666666] xl:mt-24 xl:ml-[600px] xl:max-w-lg">
+      {t(loc, 'components.grantsAndBounties.description')}
+    </p>
+    <div class="flex flex-col xl:flex-row xl:ml-[600px]">
+      <div class="-ml-6 mt-10">
+        <PillButton href="https://docs.ergoplatform.com/contribute/" variant="secondary"
+                tone="orange" external>
+          {t(loc, 'components.grantsAndBounties.button1')}
+        </PillButton>
+      </div>
+      <div class="-ml-6 mt-10 xl:ml-16">
+        <PillButton href="https://ergoraffle.com/" variant="secondary"
+                tone="orange" external>
+          {t(loc, 'components.grantsAndBounties.button2')}
+        </PillButton>
+      </div>
+      <div class="-ml-6 mt-10 xl:ml-16">
+        <PillButton href="mailto:team@ergoplatform.org" variant="secondary"
+                tone="orange">
+          {t(loc, 'components.grantsAndBounties.button3')}
+        </PillButton>
+      </div>
+    </div>
+  </div>
+
+  {/* FAQ: third/two-thirds split with the accordion on the right; only the first item is open. */}
+  <div id="FAQ" class="relative z-10 mx-auto mt-40 max-w-[1300px] p-4">
+    <div class="flex flex-col lg:flex-row">
+      <div class="lg:w-1/3">
+        <b><p class="pt-6 text-[#585858]">{t(loc, 'components.faq.anyQuestions')}</p></b>
+        <div class="font-display text-[48px] leading-[1.5] lg:text-[120px]">
+          {t(loc, 'components.faq.heading')}
+        </div>
+        <p class="text-[#585858]">{t(loc, 'components.faq.description')}</p>
+        <div class="mt-96 hidden lg:block">
+          <p class="mb-6 text-[24px] font-bold" set:html={t(loc, 'components.faq.text.2')} />
+          <a href="mailto:team@ergoplatform.org" class="text-[24px]">
+            team@ergoplatform.org
+          </a>
+        </div>
+      </div>
+
+      <div class="lg:w-2/3">
+        <div id="faq-accordion">
+          {
+            faqs.map((f, i) => (
+              <div data-faq-item>
+                <div
+                  role="button"
+                  aria-expanded={i === 0}
+                  aria-controls={`faq-collapse${i}`}
+                  data-faq-toggle
+                  class="w-full cursor-pointer pt-4"
+                >
+                  <a
+                    id={`faq-heading${i}`}
+                    class="font-display text-[16px] text-black dark:text-white lg:text-[24px]"
+                  >
+                    {f.data.question}
+                  </a>
+                </div>
+                <div
+                  id={`faq-collapse${i}`}
+                  data-faq-answer
+                  class:list={[
+                    'faq-answer mt-10 bg-[#F9FAFB] text-[#111827] dark:bg-[#141414] dark:text-[#F9FAFB]',
+                    i !== 0 && 'hidden',
+                  ]}
+                  set:html={faqHtml.get(f.id)}
+                />
+                <div class="w-full pb-4" />
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Explore: kicker and 120px heading indented 240px, copy and explorer links at 400px. */}
+  <div id="Explore" class="relative z-10 mx-auto mt-40 max-w-[1300px] p-4">
+    <p class="mb-6 text-[#585858] xl:ml-60">{t(loc, 'components.explore.subheading')}</p>
+    <h1 class="display-140 xl:ml-60">
+      <b>{t(loc, 'components.explore.heading')}</b>
+    </h1>
+    <p class="mt-6 max-w-xs text-[#666666] xl:mt-12 xl:ml-[400px] xl:max-w-lg">
+      {t(loc, 'components.ergoExplorer.description')}
+    </p>
+    <div class="mt-6 flex flex-col gap-6 xl:ml-[400px] xl:flex-row">
+      <div class="flex flex-col gap-4">
+        <h2 class="text-lg font-bold">{t(loc, 'components.ergoExplorer.blockchainExplorers')}</h2>
+        {
+          EXPLORERS.map((e) => (
+            <PillButton href={e.href} class="h-8 normal-case! text-white!" external>
+              {t(loc, e.key)}
+            </PillButton>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  {/* Documents: 96px heading over two thirds, description in the last third, then the group accordion. */}
+  <div id="Documents" class="relative z-10 mx-auto mt-40 max-w-[1300px] p-4">
+    <div class="mb-12 flex flex-col lg:flex-row">
+      <h1 class="display-96 leading-[1.5] lg:w-2/3">
+        <b>{t(loc, 'components.documents.heading')}</b>
+      </h1>
+      <div class="lg:w-1/3">
+        <p class="text-[#666666]">{t(loc, 'components.documents.description')}</p>
+      </div>
+    </div>
+
+    <div id="docs-accordion">
+      {
+        grouped.map(([group, items], gi) => (
+          <div class="border-b border-black/10">
+            <details open={gi === 0}>
+              <summary
+                id={`docs-heading${gi}`}
+                class="w-full cursor-pointer list-none pt-8 font-display text-[24px] leading-normal md:text-[32px]"
+              >
+                {group}
+              </summary>
+              <div id={`docs-collapse${gi}`} aria-labelledby={`docs-heading${gi}`}>
+                {items.map((d) => {
+                  const file = d.data.file;
+                  const href = d.data.url ?? file?.url ?? null;
+                  return (
+                    <div class="my-6">
+                      {href ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          class="font-display text-[14px] leading-[25px] text-black underline dark:text-white md:text-[16px]"
+                        >
+                          {d.data.title}
+                        </a>
+                      ) : (
+                        <span class="font-display text-[14px] leading-[25px] text-black underline dark:text-white md:text-[16px]">
+                          {d.data.title}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+            <div class="w-full pb-8" />
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</Base>
+
+<script>
+  /*
+   * The FAQ answers are static, but production keeps only one open at a time. This is
+   * the smallest faithful behaviour: clicking a question closes the others and toggles
+   * the clicked one.
+   */
+  const answers = () => document.querySelectorAll<HTMLElement>('[data-faq-answer]');
+  const toggles = () => document.querySelectorAll<HTMLElement>('[data-faq-toggle]');
+  for (const toggle of toggles()) {
+    toggle.addEventListener('click', () => {
+      const target = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
+      const isOpen = target ? !target.classList.contains('hidden') : false;
+      for (const a of answers()) a.classList.add('hidden');
+      for (const t of toggles()) t.setAttribute('aria-expanded', 'false');
+      if (target && !isOpen) {
+        target.classList.remove('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+      }
+    });
+  }
+</script>

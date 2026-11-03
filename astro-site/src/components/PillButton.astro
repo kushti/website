@@ -1,0 +1,45 @@
+---
+/**
+ * Production's pill button: the display face, uppercase, an orange fill when it is the
+ * active or primary action, and an underline when it is a secondary one. Every one of
+ * production's pills carries the same 18x16 arrow at the right.
+ */
+interface Props {
+  href: string;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  /**
+   * Secondary pills come in two tones on the live site: the home page paints them
+   * black, while the section pages paint them brand orange (both with an underline).
+   */
+  tone?: 'default' | 'orange';
+  external?: boolean;
+  class?: string;
+}
+
+const { href, variant = 'primary', tone = 'default', external = false, class: className = '' } = Astro.props;
+---
+
+<a
+  href={href}
+  {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+  class:list={[
+    'btn inline-flex items-center gap-2 rounded-full px-4 py-1 font-display text-base whitespace-nowrap uppercase transition-transform duration-200 hover:scale-105',
+    variant === 'primary' && 'bg-brand-orange text-black shadow-sm',
+    variant === 'secondary' && tone === 'default' && 'text-[var(--fg)] underline dark:decoration-brand-orange',
+    variant === 'secondary' && tone === 'orange' && 'text-brand-orange underline dark:text-white',
+    variant === 'ghost' && 'text-[var(--fg-muted)]',
+    className,
+  ]}
+>
+  <span class="leading-none"><slot /></span>
+  <span class="ml-2 flex h-5 w-5 shrink-0 items-center" aria-hidden="true">
+    <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+      <path
+        d="M1 8h16M10 1l7 7-7 7"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+  </span>
+</a>

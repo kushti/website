@@ -1,0 +1,36 @@
+---
+import Base from '../../../layouts/Base.astro';
+import BlogList from '../../../components/BlogList.astro';
+import { postsByLocale } from '../../../lib/content';
+import { normaliseLocale } from '../../../i18n/config';
+import { t } from '../../../i18n';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const PER_PAGE = 18;
+
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+const posts = await postsByLocale(loc);
+---
+
+{/*
+  page={1} slices to PER_PAGE. Omitting it renders the whole locale in one document,
+  which for `en` is 701 posts and ~600 KB of HTML.
+ */}
+<Base locale={loc} wide decor="blog" title={t(loc, 'nav.blog')}>
+  <BlogList
+    locale={loc}
+    posts={posts}
+    title="Posts"
+    page={1}
+  />
+</Base>

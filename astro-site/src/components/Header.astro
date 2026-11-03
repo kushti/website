@@ -1,0 +1,347 @@
+---
+import { t } from '../i18n';
+import { LOCALE_NAMES, LOCALES, normaliseLocale, type Locale } from '../i18n/config';
+
+interface Props {
+  locale: string;
+  currentPath: string;
+}
+
+const { locale, currentPath } = Astro.props;
+const loc = normaliseLocale(locale);
+
+/** path below the locale prefix, e.g. "/blog/foo" -> "blog/foo" */
+const rest = currentPath.replace(new RegExp(`^/${loc}`), '').replace(/^\/+/, '');
+const isActive = (p: string) => (p === '' ? rest === '' : rest === p || rest.startsWith(`${p}/`));
+
+/*
+ * The top strip of secondary destinations, matching production.
+ *
+ * Four of these (WALLETS, DOCUMENTATION, SIGMAVERSE, ERGOBLOCKCHAIN) go to properties
+ * the CMS export does not contain — see docs/output-diff.md — so they point at the
+ * canonical external homes rather than at pages this build cannot render.
+ */
+const STRIP = [
+  { label: 'Wallets', href: `/${loc}/get-erg/#Wallets`, local: true },
+  { label: 'Exchanges', href: `/${loc}/get-erg/#Exchanges`, local: true },
+  { label: 'Roadmap', href: `/${loc}/ecosystem/#Roadmap`, local: true },
+  { label: 'Blog', href: `/${loc}/blog`, local: true },
+  { label: 'Documentation', href: 'https://docs.ergoplatform.org/' },
+  { label: 'Sigmaverse', href: 'https://sigmaverse.io/' },
+  { label: 'Ergoblockchain', href: 'https://ergoblockchain.org/' },
+];
+
+/**
+ * Primary navigation; production renders these in the display face. `cta` is the item
+ * production paints orange on every page, which is not the same as the active page.
+ */
+const PRIMARY = [
+  { path: 'community', label: 'Community', cta: false },
+  { path: 'get-erg', label: 'Get ERG', cta: true },
+  { path: 'discover', label: 'Discover', cta: false },
+  { path: 'ecosystem', label: 'Ecosystem', cta: false },
+];
+
+/**
+ * Flags as regional-indicator pairs, which is what production's selector shows. Emoji
+ * flag coverage is universal on current desktop and mobile platforms; the fallback is
+ * the two letters, which still reads correctly.
+ */
+const FLAGS: Record<Locale, string> = {
+  en: '\u{1F1EC}\u{1F1E7}',
+  de: '\u{1F1E9}\u{1F1EA}',
+  es: '\u{1F1EA}\u{1F1F8}',
+  hu: '\u{1F1ED}\u{1F1FA}',
+  id: '\u{1F1EE}\u{1F1E9}',
+  it: '\u{1F1EE}\u{1F1F9}',
+  pl: '\u{1F1F5}\u{1F1F1}',
+  pt: '\u{1F1F5}\u{1F1F9}',
+  ru: '\u{1F1F7}\u{1F1FA}',
+  sk: '\u{1F1F8}\u{1F1F0}',
+  tr: '\u{1F1F9}\u{1F1F7}',
+  zh: '\u{1F1E8}\u{1F1F3}',
+};
+---
+
+{/*
+  Geometry measured on production at a 1440 viewport by scripts/probe-visual.mjs:
+
+    strip          32px, bg #f3f4f6, 12px Roboto
+    row            82px tall, starting 20px below the strip
+    header total   144px  (32 strip + 20 + 82 + 10)
+    content inset  70px from each edge — production's row is max-w-[1300px] px-4
+    logo           a 128px mark centred inside a 288px box, which is what puts the
+                   first nav pill at x=374 rather than against the inset
+    nav            16px, 24px tall (padding 4px 16px, line-height 16), 15px apart
+    controls       80x30 locale, 80x40 theme track, 50x25 hamburger
+
+  The earlier 112px row and 1268px inset were both wrong, which is what made the whole
+  header sit 31px shorter than production's and the nav start 32px too far left.
+*/}
+<header
+  class="sticky top-0 z-30 border-b border-[var(--border)] bg-white/80 pt-2 pb-1 backdrop-blur md:pt-5 md:pb-2 dark:bg-black/80"
+>
+  <div class="border-b border-[var(--border)] bg-[#f3f4f6] dark:bg-[#1f1f1f]">
+    <nav aria-label="Secondary" class="mx-auto hidden w-full max-w-[1300px] px-4 md:block">
+    {/*
+      Production's separator is a text bullet in the muted foreground colour, 8px either
+      side of it plus 8px of margin after the preceding link. The gap between items comes
+      out at 51px, which is what mx-7 was approximating with an orange dot.
+    */}
+    <ul class="flex items-center justify-center py-2">
+      {
+        STRIP.map((s, i) => (
+          <li class="flex items-center">
+            {i > 0 && (
+              <span class="mx-2 text-xs text-[var(--fg-muted)]" aria-hidden="true">•</span>
+            )}
+            <a
+              href={s.href}
+              aria-label={s.label}
+              class="mr-2 text-xs text-[var(--fg)] uppercase transition-all duration-300 hover:scale-110 hover:text-brand-orange hover:brightness-125"
+              {...(!s.local ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            >
+              {s.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+  </div>
+
+  <div class="mx-auto flex h-[82px] w-full max-w-[1300px] items-center px-4">
+    {/*
+      The logo is centred in a 288px box, not left-aligned against the inset. That is what
+      puts the first nav pill at x=374 on production; flush-left it lands at x=342.
+    */}
+    <a
+      href={`/${loc}/`}
+      class="flex min-w-0 flex-grow items-center justify-center lg:w-[clamp(150px,calc(50vw-362px),288px)] lg:flex-none"
+      aria-label="Ergo Platform"
+    >
+      {/*
+        w-32 gives a 128x49 box. Production's mark occupies 128px of width with the hexagon
+        at 49px and the wordmark at 22px — the same 2.6:1 ratio as this file's 213x82
+        viewBox, so the width alone is what has to be pinned, not the height.
+      */}
+      <img
+        src="/images/ergo-logo.svg"
+        alt="Ergo"
+        width="213"
+        height="82"
+        class="w-24 lg:w-32"
+      />
+    </a>
+
+    <nav aria-label="Primary" class="hidden items-center gap-[15px] lg:flex">
+      {
+        PRIMARY.map((r) => (
+          <a
+            href={`/${loc}/${r.path}`}
+            aria-current={isActive(r.path) ? 'page' : undefined}
+            class:list={[
+              // leading-none is what makes these 24px tall rather than 32px
+              'btn inline-flex h-6 items-center rounded-full px-4 font-display text-base leading-none whitespace-nowrap uppercase transition-transform duration-200 hover:scale-110',
+              /*
+                Production paints GET ERG orange on every page — checked /en/, /en/blog/,
+                /en/get-erg/, /en/discover/ and /en/ecosystem/ — so it is a call to
+                action, not an active state. No other item ever gets the pill; only the
+                aria-current below tracks the real active page.
+              */
+              r.cta
+                ? 'bg-brand-orange text-black'
+                : isActive(r.path)
+                  ? 'text-[var(--fg)] underline decoration-brand-orange underline-offset-2 dark:decoration-brand-orange'
+                  : 'text-[var(--fg)] hover:text-brand-orange',
+            ]}
+          >
+            {r.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    {/*
+      gap-10 between the locale control and the theme track, not gap-5: production puts
+      40px there, which is what puts the theme track at x=1184 rather than x=1204. The
+      hamburger lands at x=1304 either way, since it is pushed to the edge.
+    */}
+    <div class="ml-auto flex items-center gap-5 lg:gap-10">
+      {/*
+        A native <select> clipped its selected label to "Eng" inside the production
+        80x30 box. Production shows only the flag and chevron, with the locale names in
+        the opened list, so the closed control is a details/summary menu.
+      */}
+      <details class="relative" data-locale-menu>
+        <summary
+          class="flex h-[30px] w-20 cursor-pointer list-none items-center gap-2 rounded-[2px] border border-[var(--border)] bg-white/60 px-3 text-sm backdrop-blur-sm hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-orange dark:bg-white/5 dark:hover:bg-white/10 [&::-webkit-details-marker]:hidden"
+          aria-label={`${LOCALE_NAMES[loc]} — ${t(loc, 'nav.changeLanguage')}`}
+        >
+          <span class="leading-none" aria-hidden="true">{FLAGS[loc]}</span>
+          <span class="ml-auto flex items-center text-[var(--fg-muted)]" aria-hidden="true">
+            <svg width="17" height="10" viewBox="0 0 17 10" fill="none" aria-hidden="true">
+              <path d="M1 1l7.5 7L16 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </summary>
+        <div
+          class="absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-52 overflow-y-auto rounded-xl border border-[var(--border)] bg-white p-2 shadow-xl dark:bg-[#1a1a1a]"
+        >
+          <div class="grid gap-1">
+            {
+              LOCALES.map((l) => (
+                <button
+                  type="button"
+                  data-locale-option={l}
+                  lang={l}
+                  aria-current={l === loc ? 'true' : undefined}
+                  class:list={[
+                    'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10',
+                    l === loc && 'font-medium text-orange-500',
+                  ]}
+                >
+                  <span class="leading-none" aria-hidden="true">{FLAGS[l]}</span>
+                  <span>{LOCALE_NAMES[l]}</span>
+                </button>
+              ))
+            }
+          </div>
+        </div>
+      </details>
+
+      {/*
+        Production's switch is a single 80x40 track with one 40x40 icon cell: the sun
+        sits at the right in light mode and the moon moves to the left in dark mode.
+        There is no white selected-cell pill; the track itself is the button.
+      */}
+      <button
+        type="button"
+        class="theme-track flex h-10 w-20 items-center justify-end rounded-full bg-[#f4f4f5] p-0 shadow-inner transition-colors dark:justify-start dark:bg-black"
+        aria-label={t(loc, 'nav.toggleTheme')}
+        data-theme-toggle
+      >
+        <span class="theme-cell grid h-10 w-10 place-items-center rounded-full">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            class="block text-orange-500 dark:hidden"
+          >
+            <circle cx="12" cy="12" r="5" fill="currentColor"></circle>
+            <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path
+                d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.4 4.4l2.1 2.1M17.5 17.5l2.1 2.1M19.6 4.4l-2.1 2.1M6.5 17.5l-2.1 2.1"
+              ></path>
+            </g>
+          </svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            class="hidden text-orange-500 dark:block"
+          >
+            <path
+              d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"
+              fill="currentColor"></path>
+          </svg>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="shrink-0 text-[var(--fg)]"
+        aria-label={t(loc, 'nav.menu')}
+        aria-expanded="false"
+        data-menu-toggle
+      >
+        <span class="sr-only">{t(loc, 'nav.menu')}</span>
+        <svg width="50" height="25" viewBox="0 0 50 25" fill="none" aria-hidden="true">
+          <g stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <path d="M1 3.5h48M1 12.5h48M1 21.5h48"></path>
+          </g>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <nav
+    aria-label="Primary mobile"
+    class="hidden border-t border-[var(--border)] px-4 py-3 lg:hidden"
+    data-mobile-nav
+  >
+    <a href={`/${loc}/`} class="block rounded-lg px-3 py-2 font-display text-base font-bold">Home</a>
+    {
+      PRIMARY.map((r) => (
+        <a
+          href={`/${loc}/${r.path}`}
+          aria-current={isActive(r.path) ? 'page' : undefined}
+          class:list={[
+            'block rounded-lg px-3 py-2 font-display text-base font-bold',
+            isActive(r.path) ? 'text-brand-orange' : 'text-[var(--fg-muted)]',
+          ]}
+        >
+          {r.label}
+        </a>
+      ))
+    }
+  </nav>
+</header>
+
+<script>
+  const root = document.documentElement;
+
+  /*
+   * Theme. html[data-theme] is set before paint by the inline script in Base.astro and
+   * drives both the track position and which icon is visible.
+   */
+  const themeToggle = document.querySelector<HTMLElement>('[data-theme-toggle]');
+  themeToggle?.addEventListener('click', () => {
+    const dark = !root.classList.contains('dark');
+    root.classList.toggle('dark', dark);
+    root.style.colorScheme = dark ? 'dark' : 'light';
+    root.dataset.theme = dark ? 'dark' : 'light';
+    try {
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    } catch {
+      /* storage unavailable; the choice still applies to this page */
+    }
+  });
+
+  // Mobile navigation.
+  const menu = document.querySelector('[data-menu-toggle]');
+  const nav = document.querySelector('[data-mobile-nav]');
+  menu?.addEventListener('click', () => {
+    const open = nav?.classList.toggle('hidden') === false;
+    menu.setAttribute('aria-expanded', String(open));
+  });
+
+  /*
+   * Locale switch. Buttons rather than links keep the current page path; a post that
+   * exists only in English does not gain 11 dead /de/, /ru/... URLs in the static HTML.
+   */
+  const localeMenu = document.querySelector<HTMLDetailsElement>('[data-locale-menu]');
+  for (const option of document.querySelectorAll<HTMLElement>('[data-locale-option]')) {
+    option.addEventListener('click', () => {
+      const next = option.dataset.localeOption;
+      if (!next) return;
+      const current = document.documentElement.lang;
+      const rest = window.location.pathname.replace(new RegExp(`^/${current}`), '');
+      window.location.href = `/${next}${rest || '/'}`;
+    });
+  }
+  // Close the locale menu when clicking elsewhere.
+  document.addEventListener('click', (event) => {
+    if (localeMenu && !localeMenu.contains(event.target as Node)) localeMenu.open = false;
+  });
+  localeMenu?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && localeMenu.open) {
+      localeMenu.open = false;
+      localeMenu.querySelector('summary')?.focus();
+    }
+  });
+</script>

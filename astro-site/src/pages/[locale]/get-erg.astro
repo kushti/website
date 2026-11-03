@@ -1,0 +1,782 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PillButton from '../../components/PillButton.astro';
+import { mediaSrc } from '../../lib/content';
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+
+/**
+ * Production fetches exchanges from Strapi without a pagination override, so only the
+ * default first page is rendered: 25 records sorted by `order`. The CMS publishes 28
+ * exchanges, but the live wall never shows the last three (`nonkyc`, plus two records
+ * whose `order` is NULL), so the rebuild caps the list at the same 25 to match it.
+ */
+const exchanges = (await getCollection('exchanges'))
+  .sort((a, b) => a.data.order - b.data.order)
+  .slice(0, 25);
+
+/**
+ * The filter row production paints above the exchange grid. It is the CMS tag list in
+ * production's own order — the countries, the exchange kinds and the flag emoji all
+ * come through as tags — and "ALL" is prepended by the page rather than stored.
+ */
+const EXCHANGE_FILTERS = ['ALL', 'Asia', 'Europe', 'CEX', 'Fiat', '🇮🇳', 'No KYC', 'Swap', 'USA', 'rsERG', 'DEX'];
+
+/**
+ * The wallets table, the mining pool list and the miner list were hardcoded in the live
+ * Next.js source and never entered the CMS export, so they are not in the database.
+ * scripts/recover-geterg.mjs reads them back out of the production DOM; see
+ * docs/output-diff.md section 2a.
+ */
+const wallets = (await getCollection('wallets')).flatMap((c) => c.data.items);
+const pools = (await getCollection('miningPools')).flatMap((c) => c.data.items);
+const miners = (await getCollection('miners')).flatMap((c) => c.data.items);
+
+/**
+ * Section ids match the live site exactly, because the header strip and the footer link to
+ * them with fragments: #GetErgHero, #Wallets, #Mining, #MiningCalculator, #Exchanges.
+ */
+
+/** the four ways in, repeated from the home page — production's own order */
+const STEPS = [
+  {
+    key: 'components.getErg.MineIt.title',
+    body: 'components.getErg.MineIt.text',
+    art: 'mine',
+    href: `/${loc}/get-erg/#Mining`,
+  },
+  {
+    key: 'components.getErg.BuyIt.title',
+    body: 'components.getErg.BuyIt.text',
+    art: 'buy',
+    href: `/${loc}/get-erg/#Exchanges`,
+  },
+  {
+    key: 'components.getErg.StoreIt.title',
+    body: 'components.getErg.StoreIt.text',
+    art: 'store',
+    href: `/${loc}/get-erg/#Wallets`,
+  },
+  {
+    key: 'components.getErg.UseIt.title',
+    body: 'components.getErg.UseIt.text',
+    art: 'use',
+    href: `/${loc}/ecosystem/`,
+  },
+];
+
+/** the wallet comparison grid's three capability columns, in production's order */
+const WALLET_COLUMNS = [
+  'components.wallets.coldStorageHeader',
+  'components.wallets.dAppConnectorHeader',
+  'components.wallets.ErgoPay',
+];
+
+/** the icon production paints per capability state */
+const MARK_ICON: Record<string, string> = {
+  yes: '/artwork/geterg/feature-33.svg',
+  no: '/artwork/geterg/feature-44.svg',
+  in_progress: '/artwork/geterg/feature-29.svg',
+};
+const MARK_CLASS: Record<string, string> = {
+  yes: 'mx-auto h-8 w-8 lg:h-12 lg:w-12',
+  in_progress: 'mx-auto h-8 w-8 lg:h-12 lg:w-12',
+  no: 'mx-auto h-7 w-7 lg:h-11 lg:w-11',
+};
+
+/** the wallet logo production pairs with each name, extracted from the live DOM */
+const WALLET_LOGO: Record<string, string> = {
+  'Ergo Wallet App': 'wallet-ergo-wallet-app',
+  Nautilus: 'wallet-nautilus',
+  Satergo: 'wallet-satergo',
+  SAFEW: 'wallet-safew',
+  Minotaur: 'wallet-minotaur',
+  'Ergo Node': 'wallet-ergo-node',
+};
+const WALLET_LOGO_CLASS: Record<string, string> = {
+  Nautilus: 'w-6 h-6 lg:w-10 lg:h-10',
+  SAFEW: 'w-6 h-6 lg:w-10 lg:h-10',
+  Satergo: 'w-6 h-6 lg:w-10 lg:h-10',
+  Minotaur: 'w-6 h-6 lg:w-12 lg:h-12',
+};
+
+/**
+ * Production prints the bold group heading above the first row of each run only, so the
+ * heading flag rides along with the row rather than being a property of the wallet.
+ */
+const walletRows = wallets.map((w, i) => ({
+  wallet: w,
+  showGroup: i === 0 || wallets[i - 1].group !== w.group,
+  first: i === 0,
+}));
+
+/** the mining section's six outbound links, in production's order */
+const MINING_LINKS = [
+  { key: 'components.mining.button1', href: 'https://docs.ergoplatform.com/mining/' },
+  { key: 'components.mining.button2', href: 'https://miningpoolstats.stream/ergo' },
+  { key: 'components.mining.button3', href: 'https://discord.gg/ergo-platform-668903786361651200' },
+  { key: 'components.mining.button4', href: 'https://www.reddit.com/r/erg_miners/' },
+  { key: 'components.mining.button5', href: `/${loc}/category/Mining/` },
+  { key: 'components.mining.button6', href: 'https://docs.ergoplatform.com/mining/emission/' },
+];
+---
+
+<Base
+  locale={loc}
+  title={t(loc, 'nav.getErg')}
+  description="Where to buy ERG, the wallets available, and how the network is doing right now."
+  wide
+  decor="geterg"
+>
+  {/* Hero: title on the left, production's four illustrated cards on the right. */}
+  <div id="GetErgHero" class="relative z-10 mx-auto max-w-[1300px] px-4 py-12 lg:px-4 lg:py-16">
+    <div class="flex flex-col justify-between xl:flex-row">
+      {/*
+        Production's flex row resolves this column to 242px at 1440 — the width of the
+        widest wrapped line — and the 1010px card strip beside it follows from that. The
+        substituted display face measures a little narrower, which would hand the strip
+        25px too much, so the resolved width is pinned at the breakpoint where the row
+        starts. See docs/visual-comparison.md.
+      */}
+      <div class="lg:mb-40 lg:flex lg:flex-col lg:items-start xl:w-[242px] xl:shrink-0">
+        <p id="components.getErg.heroTitle" class="mb-4 font-bold text-black dark:text-white">
+          {t(loc, 'components.usingErg.subtitle')}
+        </p>
+        <h2 class="text-[96px] leading-none">
+          <b>{t(loc, 'components.getErg.title')}</b>
+        </h2>
+        <p class="mt-6 mr-4 max-w-xs text-black dark:text-white">
+          {t(loc, 'components.getErg.description')}
+        </p>
+      </div>
+
+      <div
+        class="no-scrollbar mt-10 ml-4 grid grid-cols-2 grid-rows-2 gap-8 overflow-x-auto pb-10 md:grid-cols-4 md:grid-rows-1 lg:gap-4"
+      >
+        {
+          STEPS.map((step) => (
+            <a class="cursor-pointer" href={step.href}>
+              <div class="using-erg-card mb-8 flex h-[200px] items-end p-4 dark:hidden md:h-[275px] lg:h-[350px]">
+                <img
+                  src={`/artwork/using-erg/${step.art}-light.svg`}
+                  alt=""
+                  width="258"
+                  height="397"
+                  loading="lazy"
+                  decoding="async"
+                  class="h-full w-full object-contain"
+                />
+              </div>
+              <div class="using-erg-card mb-8 hidden h-[200px] items-end p-4 dark:flex md:h-[275px] lg:h-[350px]">
+                <img
+                  src={`/artwork/using-erg/${step.art}-dark.svg`}
+                  alt=""
+                  width="258"
+                  height="397"
+                  loading="lazy"
+                  decoding="async"
+                  class="h-full w-full object-contain"
+                />
+              </div>
+              <p class="font-subtitle-3 mb-3">{t(loc, step.key)}</p>
+              <p>{t(loc, step.body)}</p>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  {
+    wallets.length > 0 && (
+      <div id="Wallets" class="relative z-10 mx-auto max-w-[1300px] px-4 py-12 lg:px-4 lg:py-16">
+        <div class="flex flex-col justify-between md:flex-row md:gap-36">
+          <div class="my-auto">
+            <p class="font-roboto text-[14px] font-bold text-[#585858] dark:text-[#585858] lg:text-[20px]">
+              {t(loc, 'components.wallets.chooseYours')}
+            </p>
+            <p class="font-vinila-extended-bold text-[48px] lg:text-[120px]">
+              {t(loc, 'components.wallets.walletsHeader')}
+            </p>
+          </div>
+          <div class="my-auto">
+            <p class="font-roboto text-[14px] font-bold text-[#666666] dark:text-[#666666] lg:text-[16px]">
+              {t(loc, 'components.wallets.walletDescription1')}
+              <br />
+            </p>
+            <p class="font-roboto text-[14px] text-[#666666] dark:text-[#666666] lg:text-[16px]">
+              {t(loc, 'components.wallets.walletDescription2')}
+              <br />
+            </p>
+            <p class="font-roboto text-[14px] text-[#666666] dark:text-[#666666] lg:text-[16px]">
+              <PillButton
+                href={`/${loc}/category/Tooling/`}
+                variant="secondary"
+                tone="orange"
+                class="-ml-4 mb-8"
+              >
+                {t(loc, 'components.wallets.setupGuides')}
+              </PillButton>
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <div class="flex h-20 gap-x-4 rounded-t-3xl border-[1px] border-[#585858] bg-[#E0E0E0] lg:rounded-b-full lg:rounded-t-full lg:border-0 dark:bg-[#292929]">
+            <div class="my-auto w-1/5 lg:h-full lg:rounded-l-full lg:bg-brand-orange">
+              <p class="text-center text-[11px] font-bold text-brand-orange lg:mt-6 lg:text-[24px] lg:text-white dark:text-brand-orange lg:dark:text-white">
+                {t(loc, 'components.wallets.walletsTitle')}
+              </p>
+            </div>
+            {['components.wallets.featureHeader', ...WALLET_COLUMNS].map((key) => (
+              <p class="my-auto w-1/5 text-center text-[11px] lg:text-[24px]">{t(loc, key)}</p>
+            ))}
+          </div>
+
+          <p class="font-roboto text-[14px] text-[#666666] dark:text-[#666666] lg:text-[16px]">
+            <br />
+            <PillButton
+              href="https://docs.ergoplatform.com/dev/wallets/"
+              variant="secondary"
+              tone="orange"
+              external
+              class="-ml-4 mb-8"
+            >
+              WHICH WALLET IS RIGHT FOR ME?
+            </PillButton>
+          </p>
+
+          {walletRows.map(({ wallet: w, showGroup, first: isFirst }, index) => {
+            const group = w.group ?? '';
+            const [first = '', ...rest] = group.split(' ');
+            const heading = (
+              <>
+                <b>{first}</b> {rest.join(' ')}
+              </>
+            );
+            return (
+              <>
+                {showGroup &&
+                  (index === 0 ? (
+                    <div class="flex flex-row border-x-[1px] border-[#585858] lg:mt-8 lg:border-0">
+                      <div class="ml-2 py-1 text-[10px] text-[#585858] lg:text-[16px] lg:tracking-widest lg:uppercase">
+                        {heading}
+                      </div>
+                      <div class="grow">
+                        <div class="my-auto ml-2 h-3 grow border-b-[1px] border-[#585858] lg:h-4" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div class="ml-2 py-1 text-[10px] text-[#585858] lg:text-[16px] lg:tracking-widest lg:uppercase">
+                      {heading}
+                    </div>
+                  ))}
+                <a
+                  class="flex h-28 flex-row border-x-[1px] border-[#585858] lg:border-0"
+                  href={w.url}
+                  {...(w.url.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}
+                >
+                  <div
+                    class:list={[
+                      'my-auto flex w-1/5 flex-col p-1 lg:ml-4 lg:flex-row lg:justify-start lg:gap-4',
+                      !isFirst && 'lg:pl-2',
+                    ]}
+                  >
+                    {WALLET_LOGO[w.name] && (
+                      <img
+                        src={`/artwork/geterg/${WALLET_LOGO[w.name]}.svg`}
+                        alt=""
+                        width="40"
+                        height="40"
+                        loading="lazy"
+                        decoding="async"
+                        class:list={[
+                          'mx-auto lg:mx-0',
+                          WALLET_LOGO_CLASS[w.name] ?? 'h-6 w-6 lg:h-12 lg:w-12',
+                        ]}
+                      />
+                    )}
+                    <p class:list={['text-center', isFirst ? 'lg:my-auto' : 'mt-2 lg:my-auto lg:pl-2']}>
+                      {w.name}
+                    </p>
+                  </div>
+                  <div class="my-auto w-1/5 p-1">
+                    <p class="mt-2 text-center text-[16px]">{w.note}</p>
+                  </div>
+                  {WALLET_COLUMNS.map((_, i) => {
+                    const mark = w.marks?.[i];
+                    return (
+                      <div class="my-auto w-1/5 p-1">
+                        {mark && (
+                          <img
+                            src={MARK_ICON[mark]}
+                            alt=""
+                            width="33"
+                            height="32"
+                            loading="lazy"
+                            decoding="async"
+                            class={MARK_CLASS[mark]}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </a>
+              </>
+            );
+          })}
+          <div class="flex h-16 flex-row rounded-b-3xl border-x-[1px] border-b-[1px] border-[#585858] lg:border-0" />
+        </div>
+      </div>
+    )
+  }
+
+  {/* Mining: pools and miners on the left, production's copy and links on the right. */}
+  <div id="Mining" class="relative z-10 mx-auto flex max-w-[1300px] flex-col px-4 py-12 lg:flex-row lg:px-4 lg:py-16">
+    <div class="lg:w-1/2">
+      <h1 class="font-vinila-extended text-[48px] lg:text-[120px]">
+        {t(loc, 'components.mining.title')}
+      </h1>
+      <div class="hidden lg:block">
+        <div>
+          <h2 class="mb-14 mt-8 font-vinila-extended-light text-[40px] lg:mt-24 lg:text-[48px]">
+            {t(loc, 'components.mining.miningPoolsTitle')}
+          </h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2">
+            {pools.map((p) => (
+              <div class="mb-10 ml-6">
+                <PillButton href={p.url} variant="secondary" tone="orange" external>
+                  {p.name}
+                </PillButton>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h2 class="mb-14 mt-8 font-vinila-extended-light text-[40px] lg:mt-12 lg:text-[48px]">
+            {t(loc, 'components.mining.minersTitle')}
+          </h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2">
+            {miners.map((m) => (
+              <div class="mb-10 ml-6">
+                <PillButton href={m.url} variant="secondary" tone="orange" external>
+                  {m.name}
+                </PillButton>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:w-1/2">
+      <p class="mt-8 max-w-sm text-[14px] text-[#666666] lg:mt-16 lg:text-[16px] dark:text-[#666666]">
+        {t(loc, 'components.mining.text.1')}
+      </p>
+      <p class="mt-8 max-w-lg text-[14px] font-bold text-[#666666] lg:text-[24px] dark:text-[#666666]">
+        {t(loc, 'components.mining.text.2')}
+      </p>
+      <p class="mt-8 max-w-sm text-[14px] text-[#666666] lg:mt-16 lg:text-[16px] dark:text-[#666666]">
+        {t(loc, 'components.mining.text.3')}
+      </p>
+      <br />
+      {MINING_LINKS.map((l) => (
+        <>
+          <div class="-ml-4">
+            <PillButton href={l.href} variant="secondary" tone="orange" external={l.href.startsWith('http')}>
+              {t(loc, l.key)}
+            </PillButton>
+          </div>
+          <br />
+        </>
+      ))}
+    </div>
+  </div>
+
+  {/* The mining calculator renders production's black card and fills it from the same API. */}
+  <div id="MiningCalculator" class="relative z-10 mx-auto max-w-[1300px] px-4 py-12 lg:px-4 lg:py-16">
+    <div
+      class="mining-calculator-bg mx-auto grid max-w-[1167px] grid-cols-1 gap-14 px-10 py-12 lg:grid-cols-2 lg:px-20 lg:py-24"
+      data-mining-calculator
+    >
+      <div>
+        <h2 class="mb-6 font-vinila-extended font-bold leading-none text-white lg:text-[80px]">
+          {t(loc, 'components.mining.calculator.title')}
+        </h2>
+        <p class="mb-7 text-[16px] text-[#666666] lg:hidden dark:text-[#666666]">
+          {t(loc, 'components.mining.calculator.description')}
+        </p>
+        <div class="lg:mb-4">
+          <p class="mb-4 text-[16px] text-white lg:my-auto lg:pr-2 lg:text-[20px]">
+            {t(loc, 'components.mining.calculator.hash')}
+          </p>
+          <div class="relative">
+            <input
+              id="hashrate"
+              type="number"
+              name="hashrate"
+              inputmode="decimal"
+              min="0"
+              step="any"
+              value="1"
+              data-calc-hashrate
+              placeholder={t(loc, 'components.mining.calculator.placeholder')}
+              class="block h-12 w-full rounded-2xl border-[1px] border-white bg-transparent pl-4 pr-10 text-white sm:text-sm"
+            />
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-white">
+              {t(loc, 'components.mining.calculator.mhs')}
+            </div>
+          </div>
+        </div>
+        <p class="mt-6 text-[16px] text-[#666666] dark:text-[#666666]">
+          {t(loc, 'components.mining.calculator.description')}
+        </p>
+      </div>
+
+      <div>
+        <p class="mb-6 text-[16px] text-white lg:mt-[92px] lg:text-[20px]">
+          {t(loc, 'components.mining.calculator.rev')}
+        </p>
+        <p class="text-[32px] text-white lg:text-[40px]">
+          <span data-calc="revenue-erg">0.00</span> ERG
+        </p>
+        <p class="mb-16 text-[32px] text-white lg:text-[40px]">
+          = <span class="text-brand-orange dark:text-brand-orange">$<span data-calc="revenue-usd">0.00</span></span>
+        </p>
+        <div class="flex flex-row justify-between">
+          <div>
+            <p class="text-white">{t(loc, 'components.mining.calculator.currentPrice')}</p>
+            <div class="flex flex-col lg:flex-row">
+              <p class="text-white">1 ERG =&nbsp;</p>
+              <p class="text-brand-orange dark:text-brand-orange">$<span data-calc="price">0.00</span></p>
+            </div>
+          </div>
+          <div>
+            <p class="text-white">{t(loc, 'components.mining.calculator.currentBlockReward')}</p>
+            <div class="flex flex-col lg:flex-row">
+              <p class="text-white"><span data-calc="blockReward">3.00</span> ERG =&nbsp;</p>
+              <p class="text-brand-orange dark:text-brand-orange">$<span data-calc="blockRewardUsd">0.00</span></p>
+            </div>
+          </div>
+          <div>
+            <p class="text-white">{t(loc, 'components.mining.calculator.networkHashrate')}</p>
+            <div class="flex flex-col lg:flex-row">
+              <p class="text-white"><span data-calc="networkHashrate">0.00</span>&nbsp;</p>
+              <p class="text-white">TH/s</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Exchanges: title and disclaimer, the tag row, then the logo wall. */}
+  <div id="Exchanges" class="relative z-10 mx-auto max-w-[1300px] px-4 py-12 lg:px-4 lg:py-16">
+    <div class="flex flex-col justify-between md:flex-row">
+      <div>
+        <p class="mb-4 font-bold text-[#585858] dark:text-[#585858]">
+          {t(loc, 'components.exchanges.heading')}
+        </p>
+        <h2 class="heading-balance text-[clamp(48px,12vw,100px)] md:text-[100px] lg:text-[120px]">
+          {t(loc, 'components.exchanges.subheading')}
+        </h2>
+      </div>
+      <div>
+        <p class="mb-6 max-w-lg font-subtitle-3-bold text-[#666666] dark:text-[#666666]">
+          {t(loc, 'components.exchanges.available')}
+        </p>
+        <p class="max-w-lg text-[#666666] dark:text-[#666666]">
+          {t(loc, 'components.exchanges.disclaimer')}
+          <br />
+          <br />
+          <span class="-ml-4 mb-8 inline-block">
+            <PillButton href="https://docs.ergoplatform.com/uses/exchange/" variant="secondary" tone="orange" external>
+              BUYING GUIDE
+            </PillButton>
+          </span>
+        </p>
+      </div>
+    </div>
+
+    {/*
+      Production filters the list by region with a client-side row of pills above the
+      logo wall. Every exchange is rendered and the filters narrow the list with the
+      data-attribute the row already carries, so the whole list is reachable with
+      scripting off and the pills are an enhancement rather than the only way in.
+    */}
+    <div
+      class="mb-4 flex flex-wrap justify-center"
+      role="group"
+      aria-label={t(loc, 'components.exchanges.subheading')}
+      data-exchange-filter
+    >
+      {EXCHANGE_FILTERS.map((tag) => (
+        <button
+          type="button"
+          data-exchange-tag={tag === 'ALL' ? '' : tag}
+          aria-pressed={tag === 'ALL'}
+          class="exchange-pill"
+        >
+          {tag}
+        </button>
+      ))}
+    </div>
+
+    <div class="mt-6 grid grid-cols-2 gap-0.5 md:grid-cols-4 lg:mt-8">
+      {exchanges.map((e) => {
+        const src = mediaSrc(e.data.image ?? e.data.imageDark, 600);
+        return (
+          <div class="col-span-1 m-auto flex justify-center px-8 py-8" data-exchange-item data-exchange-tags={e.data.tags.join('|')}>
+            <a
+              href={e.data.url ?? '#'}
+              {...(e.data.url ? { target: '_blank', rel: 'noreferrer' } : {})}
+            >
+              {src ? (
+                <img
+                  src={src}
+                  alt={e.data.name}
+                  width={e.data.image?.width ?? 200}
+                  height={e.data.image?.height ?? 46}
+                  loading="lazy"
+                  decoding="async"
+                  class="max-w-full"
+                />
+              ) : (
+                <span class="text-sm font-semibold">{e.data.name}</span>
+              )}
+            </a>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</Base>
+
+<style is:global>
+  /*
+   * Production's illustrated hero cards: a soft white gradient panel with a 28px radius
+   * that lifts and warms on hover.
+   */
+  .using-erg-card {
+    position: relative;
+    border: 1.5px solid #f2f2f2;
+    border-radius: 28px;
+    background: linear-gradient(120deg, #fff 60%, #f6f6f6);
+    box-shadow: 0 2px 12px rgba(214, 214, 214, 0.18);
+    transition:
+      transform 0.25s cubic-bezier(0.4, 2, 0.6, 1),
+      box-shadow 0.25s cubic-bezier(0.4, 2, 0.6, 1),
+      background 0.25s,
+      border 0.25s;
+  }
+
+  .using-erg-card:hover {
+    z-index: 100;
+    transform: translateY(-4px);
+    border: 2px solid #ff5e18;
+    background: linear-gradient(120deg, #fff 40%, #ffe7d9);
+    box-shadow:
+      0 12px 36px 0 rgba(255, 94, 24, 0.13),
+      0 4px 19px rgba(214, 214, 214, 0.22);
+  }
+
+  .dark .using-erg-card {
+    border: 1.5px solid #232323;
+    background: linear-gradient(120deg, #232323 60%, #343434);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  }
+
+  .dark .using-erg-card:hover {
+    border: 2px solid #ff5e18;
+    background: linear-gradient(120deg, #232323 40%, #3a2a1a);
+    box-shadow:
+      0 12px 36px 0 rgba(255, 94, 24, 0.13),
+      0 4px 19px rgba(0, 0, 0, 0.22);
+  }
+
+  /* the calculator's black card, straight from production's stylesheet */
+  .mining-calculator-bg {
+    border: 1px solid;
+    border-radius: 20px;
+    background:
+      linear-gradient(240.01deg, rgba(255, 255, 255, 0.15) -4.45%, rgba(255, 255, 255, 0) 17.42%),
+      linear-gradient(246.95deg, rgba(255, 255, 255, 0) 65.9%, rgba(255, 255, 255, 0.15)),
+      #000;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    border-image-source: linear-gradient(76.92deg, #ff5e18 26.64%, rgba(255, 94, 24, 0) 101.05%);
+  }
+
+  /* production's exchange filter chips */
+  .exchange-pill {
+    margin-right: 0.75rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: #fff;
+    color: #000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition:
+      background-color 0.3s ease-in-out,
+      color 0.3s ease-in-out,
+      transform 0.3s ease-in-out;
+  }
+
+  .exchange-pill:hover {
+    background: #f3f4f6;
+  }
+
+  .exchange-pill.is-on {
+    border-color: var(--color-brand-orange);
+    background: var(--color-brand-orange);
+    color: #fff;
+  }
+
+  .exchange-pill.is-on:hover {
+    background: var(--color-brand-orange);
+    filter: brightness(0.92);
+  }
+
+  .exchange-item[hidden] {
+    display: none;
+  }
+
+  .dark .exchange-pill {
+    background: #1f1f1f;
+    color: #fff;
+    border-color: #3f3f46;
+  }
+</style>
+
+<script>
+  /**
+   * Exchange filter. Progressive: every exchange is in the HTML, and the pills narrow the
+   * list by toggling `hidden`, so the section is complete without scripting. aria-pressed
+   * carries the state for a screen reader rather than only the styling.
+   */
+  const filter = document.querySelector('[data-exchange-filter]');
+  if (filter) {
+    const items = [...document.querySelectorAll<HTMLElement>('[data-exchange-item]')];
+    const pills = [...filter.querySelectorAll<HTMLButtonElement>('[data-exchange-tag]')];
+
+    const apply = (tag: string) => {
+      for (const item of items) {
+        const tags = (item.dataset.exchangeTags ?? '').split('|');
+        item.hidden = tag !== '' && !tags.includes(tag);
+      }
+      for (const pill of pills) {
+        const on = pill.dataset.exchangeTag === tag;
+        pill.classList.toggle('is-on', on);
+        pill.setAttribute('aria-pressed', String(on));
+      }
+    };
+
+    for (const pill of pills) pill.addEventListener('click', () => apply(pill.dataset.exchangeTag ?? ''));
+
+    // production paints the ALL chip orange on load, before any click
+    apply('');
+  }
+
+  /**
+   * The mining calculator. Production runs the same arithmetic client-side against a live
+   * price and network hashrate, so this reproduces it rather than baking values in:
+   *
+   *   hashrate in MH/s -> H/s is x1e6
+   *   share of network = hashrate / network hashrate
+   *   expected blocks  = share x blocks per day (1440 / avg block time)
+   *   daily revenue    = blocks x block reward x price
+   */
+  const root = document.querySelector('[data-mining-calculator]');
+  if (root) {
+    const get = (sel: string) => root.querySelector(sel);
+    const num = (v: number, digits = 2) =>
+      new Intl.NumberFormat(document.documentElement.lang, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      }).format(v);
+
+    /** filled in from the two endpoints below */
+    const state = { price: 0, blockReward: 3, networkHashrate: 0, avgBlockTime: 121696 };
+
+    const set = (key: string, text: string) => {
+      const el = root.querySelector(`[data-calc="${key}"]`);
+      if (el) el.textContent = text;
+    };
+
+    let hashrate = 1;
+
+    const recalc = () => {
+      const erg =
+        (hashrate / 1e6 / state.networkHashrate) * (86400 / state.avgBlockTime) * state.blockReward || 0;
+      set('revenue-erg', num(erg));
+      set('revenue-usd', num(erg * state.price));
+      set('blockRewardUsd', num(state.blockReward * state.price));
+    };
+
+    const input = get<HTMLInputElement>('[data-calc-hashrate]');
+    input?.addEventListener('input', () => {
+      hashrate = Number(input.value) || 0;
+      recalc();
+    });
+
+    (async () => {
+      try {
+        const [infoRes, statsRes, blocksRes] = await Promise.all([
+          fetch('https://api.ergoplatform.com/info'),
+          fetch('https://api.ergoplatform.com/stats'),
+          fetch('https://api.ergoplatform.com/blocks?limit=1'),
+        ]);
+
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          if (typeof info.hashRate === 'number') state.networkHashrate = info.hashRate;
+        }
+
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          if (typeof stats?.blockSummary?.averageMiningTime === 'number') {
+            state.avgBlockTime = stats.blockSummary.averageMiningTime;
+          }
+          if (typeof stats?.miningCost?.difficulty === 'number') {
+            state.networkHashrate = stats.miningCost.difficulty;
+          }
+        }
+
+        if (blocksRes.ok) {
+          const blocks = await blocksRes.json();
+          const reward = blocks?.items?.[0]?.reward;
+          if (reward != null) {
+            const rewards = Array.isArray(reward) ? reward : [reward];
+            const total = rewards.reduce((n: number, r: any) => n + (r.value ?? 0), 0);
+            if (total > 0) state.blockReward = total;
+          }
+        }
+
+        set('networkHashrate', num(state.networkHashrate / 1e12));
+        set('price', num(state.price));
+
+        /*
+         * There is no public price feed in the archive, so the price stays at zero and the
+         * dollar lines read 0.00. See docs/output-diff.md.
+         */
+        recalc();
+      } catch {
+        /* the calculator is supplementary; the placeholders remain */
+      }
+    })();
+  }
+</script>

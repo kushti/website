@@ -1,0 +1,221 @@
+---
+import { t } from '../i18n';
+import { normaliseLocale } from '../i18n/config';
+import { postsByLocale } from '../lib/content';
+import { FOOTER_ICONS } from '../lib/footer-icons';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const loc = normaliseLocale(locale);
+const year = new Date().getFullYear();
+
+/**
+ * Section links match the live site, including its anchor fragments, so existing
+ * inbound links such as /en/discover/#FAQ keep landing on the right block.
+ *
+ * Labels come from the CMS's i18n bundle, so all twelve locales are covered; the hrefs
+ * are fixed, because the live site routes the same anchor from every language.
+ */
+const COLUMNS = [
+  {
+    title: 'footer.community.title',
+    href: `/${loc}/community/`,
+    links: [
+      { href: `/${loc}/community/#JoinUs`, key: 'footer.community.1' },
+      { href: `/${loc}/community/#Sigmanauts`, key: 'footer.community.2' },
+      { href: `/${loc}/community/#Contribute`, key: 'footer.community.3' },
+      { href: `/${loc}/community/#HallOfFame`, key: 'footer.community.4' },
+      { href: `/${loc}/community/#Foundation`, key: 'footer.community.5' },
+    ],
+  },
+  {
+    title: 'footer.getErg.title',
+    href: `/${loc}/get-erg/`,
+    links: [
+      { href: `/${loc}/get-erg/#Mining`, key: 'footer.getErg.1' },
+      { href: `/${loc}/get-erg/#MiningCalculator`, key: 'footer.getErg.2' },
+      { href: `/${loc}/get-erg/#Wallets`, key: 'footer.getErg.3' },
+      { href: `/${loc}/get-erg/#Exchanges`, key: 'footer.getErg.4' },
+    ],
+  },
+  {
+    title: 'footer.discover.title',
+    href: `/${loc}/discover/`,
+    links: [
+      { href: `/${loc}/discover/#DiscoverERG`, key: 'footer.discover.discoverErg' },
+      { href: `/${loc}/discover/#GrantsAndBounties`, key: 'footer.discover.2' },
+      { href: `/${loc}/discover/#FAQ`, key: 'components.faq.heading' },
+      { href: `/${loc}/discover/#Explore`, key: 'footer.discover.4' },
+      { href: `/${loc}/discover/#Documents`, key: 'footer.discover.5' },
+    ],
+  },
+  {
+    title: 'footer.ecosystem.title',
+    href: `/${loc}/ecosystem/`,
+    links: [
+      { href: `/${loc}/ecosystem/#DApps`, key: 'footer.ecosystem.1' },
+      { href: `/${loc}/ecosystem/#Roadmap`, key: 'footer.ecosystem.2' },
+      { href: `/${loc}/ecosystem/#Wiki`, key: 'footer.ecosystem.3' },
+      { href: `/${loc}/ecosystem/#Favorites`, key: 'footer.favorites.title' },
+      { href: `/${loc}/ecosystem/#Videocasts`, key: 'footer.realLifeErgo.title' },
+    ],
+  },
+];
+
+/** the live site's last two columns list the five most recent posts of each type */
+const blog = (await postsByLocale(loc, 'blog')).slice(0, 5);
+const news = (await postsByLocale(loc, 'news')).slice(0, 5);
+
+const postHref = (post: (typeof blog)[number]) =>
+  post.data.externalUrl ?? `/${loc}/blog/${encodeURI(post.data.slug)}/`;
+---
+
+{/*
+  Production's footer is a 700px-tall ground: the 1440x752 footer artwork sits behind a
+  single row of logo + ten social marks + contact address, then six link columns, then
+  the copyright line. Geometry and assets are the live site's own — the background is the
+  image-set it ships, positioned bottom and covered, as `.footer-image` did there.
+*/}
+<footer
+  id="Footer"
+  class="footer-image relative z-10 overflow-hidden md:min-h-[700px] lg:min-h-[700px]"
+>
+  <div class="relative z-20 mx-auto max-w-[1300px] px-4 py-12">
+    <div class="items-center justify-between md:flex md:min-h-[120px]">
+      <div class="my-6 flex justify-start md:my-auto md:justify-center">
+        <a aria-label="Ergo Platform Home" href={`/${loc}/`}>
+          <img
+            src="/images/ergo-logo.svg"
+            alt="Ergo"
+            width="213"
+            height="82"
+            class="w-40 md:w-52"
+          />
+        </a>
+      </div>
+
+      <div
+        class="my-auto flex flex-wrap justify-center gap-4 md:flex-nowrap md:justify-start md:gap-2 lg:gap-4"
+      >
+        {
+          FOOTER_ICONS.map((icon) => (
+            <div class="box">
+              <a
+                href={icon.href === '@wiki' ? `/${loc}/ecosystem/#Wiki` : icon.href}
+                {...(icon.href.startsWith('http')
+                  ? { target: '_blank', rel: 'noreferrer' }
+                  : {})}
+                aria-label={icon.label}
+              >
+                <svg
+                  width={icon.width}
+                  height={icon.height}
+                  viewBox={icon.viewBox}
+                  fill={icon.fill}
+                  class={icon.class}
+                  style={icon.style}
+                  xmlns="http://www.w3.org/2000/svg"
+                  set:html={icon.body}
+                />
+              </a>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="my-6 flex justify-start md:my-auto md:justify-center">
+        <a href="mailto:team@ergoplatform.org">team@ergoplatform.org</a>
+      </div>
+    </div>
+
+    <div class="my-6 grid gap-x-6 gap-y-10 md:grid-cols-2 lg:grid-cols-6">
+      {
+        COLUMNS.map((col) => (
+          <div>
+            <a href={col.href}>
+              <p class="display-18 my-6 cursor-pointer">{t(loc, col.title)}</p>
+            </a>
+            <ul class="hidden md:block">
+              {col.links.map((l) => (
+                <li class="mb-6">
+                  <a href={l.href}>
+                    <span class="cursor-pointer text-black hover:text-brand-orange dark:text-gray-300">{t(loc, l.key)}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+
+      <div>
+        <a href={`/${loc}/blog/`}>
+          <p class="display-18 my-6 cursor-pointer">{t(loc, 'footer.blog.title')}</p>
+        </a>
+        <ul class="hidden h-[360px] overflow-hidden md:block lg:h-[380px]">
+          {
+            blog.map((post) => (
+              <li class="mb-6">
+                <a
+                  href={postHref(post)}
+                  class="block w-full truncate leading-5 text-black hover:text-brand-orange dark:text-gray-300"
+                  {...(post.data.externalUrl
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                >
+                  {post.data.title}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div>
+        <a href={`/${loc}/blog/?type=news`}>
+          <p class="display-18 my-6 cursor-pointer">{t(loc, 'footer.news.title')}</p>
+        </a>
+        <ul class="hidden h-[360px] overflow-hidden md:block lg:h-[380px]">
+          {
+            news.map((post) => (
+              <li class="mb-6">
+                <a
+                  href={postHref(post)}
+                  class="block w-full truncate leading-5 text-black hover:text-brand-orange dark:text-gray-300"
+                  {...(post.data.externalUrl
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                >
+                  {post.data.title}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-8 md:flex">
+      <div class="my-auto flex-grow md:flex-grow">
+        <ul class="inline-flex items-center">
+          <li class="mr-6">Ergo Platform &copy; {year}</li>
+          <li class="mr-6">
+            <a href={`/${loc}/privacy-policy/`}>
+              <span class="cursor-pointer hover:text-brand-orange">
+                {t(loc, 'footer.privacyPolicy')}
+              </span>
+            </a>
+          </li>
+          <li class="mr-6">
+            <a href={`/${loc}/legal/`}>
+              <span class="cursor-pointer hover:text-brand-orange">{t(loc, 'footer.legal')}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>

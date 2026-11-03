@@ -1,0 +1,110 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { formatLongDate } from '../../lib/dates';
+import PostCard from '../../components/PostCard.astro';
+import { postsByLocale } from '../../lib/content';
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+/**
+ * The manifesto is a single CMS post per locale, found by slug.
+ *
+ * The live site 404s this page for the six locales that have no manifesto post; this
+ * build falls back to the English text instead, which is why `/de/manifesto/` and
+ * friends exist here and not there. Its `<title>` comes from the CMS post so the page
+ * matches production ("The Ergo Manifesto", "El Ergo Manifesto", ...).
+ */
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+
+const all = await getCollection('posts');
+const usable = all.filter((p) => !p.data.superseded);
+
+const find = (prefix: string) =>
+  usable.find((p) => p.data.locale === prefix && p.data.slug.toLowerCase().includes('manifesto'));
+
+const source = find(loc) ?? find('en');
+const { Content } = source ? await render(source) : { Content: null };
+
+const latest = (await postsByLocale(loc, 'blog')).slice(0, 6);
+
+const date = source?.data.date ? formatLongDate(loc, source.data.date) : '';
+---
+
+<Base
+  locale={loc}
+  title={source?.data.title ?? t(loc, 'nav.manifesto')}
+  description={source?.data.subtitle ?? source?.data.title}
+  wide
+>
+  {/*
+    Production renders this page as an article, not a section page: a "back to all posts"
+    link, then the title, its category, its date and the body in a narrow measure. It is
+    the same shape as a blog post with no hero image, which is what it is.
+  */}
+  <section id="Manifesto" class="scroll-mt-24 pt-16 pb-24">
+    <div class="mx-auto w-full max-w-[1300px] px-4">
+      <div class="mx-auto max-w-[720px]">
+        <nav class="text-sm">
+          <a href={`/${loc}/blog/`} class="underline hover:text-brand-orange">
+            {t(loc, 'blog.post.backToAll')}
+          </a>
+        </nav>
+
+        <header class="mt-6">
+          <h1 class="display-96">{source?.data.title ?? t(loc, 'nav.manifesto')}</h1>
+
+          <div class="mt-8 flex flex-wrap items-center gap-4 text-sm">
+            {/*
+              The category link follows the post, not the route. Five locales have no
+              manifesto of their own and fall back to the English text, and a category page
+              only exists where a post carries that tag — so /hu/category/Community/ is
+              not a page this build serves.
+            */}
+            {
+              source?.data.tags.slice(0, 1).map((tag) => (
+                <a
+                  href={`/${source.data.locale}/category/${encodeURIComponent(tag)}/`}
+                  class="rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold tracking-widest text-white uppercase"
+                >
+                  {tag}
+                </a>
+              ))
+            }
+            {date && <span class="text-[var(--fg-muted)]">{date}</span>}
+          </div>
+        </header>
+
+        <div class="prose-post mt-10 max-w-none">
+          <Content />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {
+    latest.length > 0 && (
+      <section id="LatestPosts" class="scroll-mt-24 bg-[var(--surface)] py-24">
+        <div class="mx-auto w-full max-w-[1300px] px-4">
+          <h2 class="display-96">{t(loc, 'home.latestPosts')}</h2>
+          <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {latest.map((post) => (
+              <PostCard post={post} />
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+</Base>

@@ -1,0 +1,38 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+/*
+ * Astro compiles this function into its own module and drops the component's static
+ * imports, so a bare reference to LOCALES fails at build time. Importing it inside the
+ * function keeps one source of truth for the locale list.
+ */
+export async function getStaticPaths() {
+  const { LOCALES } = await import('../../i18n/config');
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: string };
+const loc = normaliseLocale(locale);
+
+const pages = await getCollection('pages');
+const pick = (kind: string) =>
+  pages.find((p) => p.data.kind === kind && p.data.locale === loc) ??
+  pages.find((p) => p.data.kind === kind && p.data.locale === 'en');
+
+const doc = pick('ergo-wallet-app');
+const { Content } = doc ? await render(doc) : { Content: null };
+---
+
+<Base locale={loc} title={t(loc, 'nav.ergoWalletApp')} description={doc?.data.title} wide>
+  <article class="mx-auto w-full max-w-[720px] px-6 py-16">
+      <h1 class="display-96">
+        {t(loc, 'nav.ergoWalletApp')}
+      </h1>
+      <div class="prose-post mt-10 max-w-none">
+        {Content && <Content />}
+      </div>
+  </article>
+</Base>

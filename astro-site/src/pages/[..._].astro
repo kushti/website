@@ -1,0 +1,57 @@
+---
+import { DEFAULT_LOCALE } from '../i18n/config';
+
+/**
+ * Handles `/`, `/blog`, `/cn/...` and any other locale-less URL.
+ *
+ * The live site redirects these to the default locale (and `/cn/*` to `/zh`). Astro's
+ * static output has no server to do that at request time, so each one gets a real HTML
+ * file that redirects via meta refresh plus a canonical link. The `_redirects` file
+ * written by scripts/write-redirects.mjs does the same job at the edge, which is the
+ * preferred path; these pages are the fallback for a host that ignores `_redirects`.
+ *
+ * getStaticPaths is hoisted into its own module by Astro, so it cannot close over
+ * anything declared at the top of this file.
+ */
+export function getStaticPaths() {
+  const sections = [
+    'blog',
+    'discover',
+    'ecosystem',
+    'community',
+    'get-erg',
+    'manifesto',
+    'legal',
+    'privacy-policy',
+    'ergo-wallet-app',
+    'cn',
+  ];
+  return [
+    { params: { _: undefined }, props: { cn: false } },
+    ...sections.map((s) => ({ params: { _: s }, props: { cn: s === 'cn' } })),
+    // one level below, so /cn/blog resolves even without the _redirects rule
+    ...sections
+      .filter((s) => s !== 'cn')
+      .map((s) => ({ params: { _: `cn/${s}` }, props: { cn: true, section: s } })),
+  ];
+}
+
+const { cn, section } = Astro.props as { cn: boolean; section?: string };
+const locale = cn ? 'zh' : DEFAULT_LOCALE;
+const tail = cn ? (section ? `/${section}` : '') : `/${Astro.params._ ?? ''}`;
+const clean = `/${locale}${tail}`.replace(/\/+$/, '/');
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <title>Ergo Platform</title>
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href={`https://ergoplatform.org${clean}`} />
+    <meta http-equiv="refresh" content={`0; url=${clean}`} />
+  </head>
+  <body>
+    <p>Redirecting to <a href={clean}>{clean}</a>&hellip;</p>
+  </body>
+</html>

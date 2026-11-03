@@ -1,0 +1,171 @@
+---
+import PostCard from './PostCard.astro';
+import { normaliseLocale } from '../i18n/config';
+import type { Post } from '../lib/content';
+
+/**
+ * Production's tag page.
+ *
+ * Unlike the blog index it has no "Posts" hero or type filter: a back pill and the
+ * "Search by tag …" chip replace the filter row, the grid is 12 posts per page, and the
+ * page is driven by `?page=N` rather than dedicated routes. Those query URLs are served
+ * the same static document here, with the small script below revealing the requested
+ * 12-card slice. All cards stay in the document so the queries work without another
+ * build; page one remains visible when JavaScript is unavailable.
+ */
+interface Props {
+  locale: string;
+  /** the tag segment as it appears in the URL */
+  name: string;
+  /** every post carrying the tag, already newest-first */
+  posts: Post[];
+}
+
+const { locale, name, posts } = Astro.props;
+const loc = normaliseLocale(locale);
+
+const PER_PAGE = 12;
+const totalPages = Math.max(1, Math.ceil(posts.length / PER_PAGE));
+---
+
+<div id="Blog" class="relative z-10 mx-auto max-w-[1300px] p-4 min-h-[1800px]">
+  <div class="my-10 mx-6 flex flex-row justify-between md:mx-32">
+    <div>
+      <div class="-ml-6">
+        <a
+          href={`/${loc}/blog/`}
+          class="btn inline-flex items-center whitespace-nowrap rounded-full bg-transparent px-4 py-1 font-vinila-extended text-[14px] text-brand-orange underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px] dark:text-white"
+          aria-label="BACK TO ALL POSTS"
+        >
+          <span class="leading-none">BACK TO ALL POSTS</span>
+        </a>
+      </div>
+      <h1
+        class="inline-block rounded-md bg-black/50 px-3 py-2 font-vinila-extended text-[40px] text-white md:text-[48px]"
+      >
+        Search by tag &ldquo;{name}&rdquo;
+      </h1>
+    </div>
+  </div>
+
+  <div class="mt-10">
+    <div class="w-full">
+      <div
+        class="grid grid-cols-1 gap-y-10 md:grid-cols-2 md:gap-y-20 xl:grid-cols-3"
+        data-category-grid
+      >
+        {
+          posts.map((post, i) => (
+            <div class="w-full" data-category-post hidden={i >= PER_PAGE}>
+              <PostCard post={post} variant="feature" utcDate />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <nav
+    class="mt-12 flex items-center justify-center gap-2"
+    aria-label="Pagination"
+    data-category-pagination
+  >
+    <a
+      class="cursor-not-allowed rounded border border-gray-300 px-3 py-1 text-gray-400"
+      aria-disabled="true"
+      tabindex="-1"
+      href="#"
+      data-page-prev
+    >
+      Prev
+    </a>
+    {
+      Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+        <a
+          class:list={[
+            'rounded border px-3 py-1',
+            n === 1
+              ? 'border-brand-orange bg-brand-orange text-white'
+              : 'border-brand-orange text-brand-orange hover:bg-brand-orange/10',
+          ]}
+          aria-current={n === 1 ? 'page' : undefined}
+          href={`?page=${n}`}
+          data-page={n}
+        >
+          {n}
+        </a>
+      ))
+    }
+    <a
+      class:list={[
+        'rounded border px-3 py-1',
+        totalPages > 1
+          ? 'border-brand-orange text-brand-orange hover:bg-brand-orange/10'
+          : 'cursor-not-allowed border-gray-300 text-gray-400',
+      ]}
+      aria-disabled={totalPages > 1 ? 'false' : 'true'}
+      tabindex={totalPages > 1 ? '0' : '-1'}
+      href={totalPages > 1 ? '?page=2' : '#'}
+      data-page-next
+    >
+      Next
+    </a>
+  </nav>
+</div>
+
+<script>
+  (() => {
+    const grid = document.querySelector<HTMLElement>('[data-category-grid]');
+    const nav = document.querySelector<HTMLElement>('[data-category-pagination]');
+    if (!grid || !nav) return;
+
+    const cards = [...grid.querySelectorAll<HTMLElement>('[data-category-post]')];
+    const perPage = 12;
+    const totalPages = Math.max(1, Math.ceil(cards.length / perPage));
+    const requested = Number(new URLSearchParams(location.search).get('page'));
+    const page =
+      Number.isInteger(requested) && requested >= 1 && requested <= totalPages
+        ? requested
+        : 1;
+
+    const show = (n: number) => {
+      const start = (n - 1) * perPage;
+      cards.forEach((card, i) => {
+        card.hidden = i < start || i >= start + perPage;
+      });
+
+      nav.querySelectorAll<HTMLAnchorElement>('[data-page]').forEach((link) => {
+        const active = Number(link.dataset.page) === n;
+        link.classList.toggle('bg-brand-orange', active);
+        link.classList.toggle('text-white', active);
+        link.classList.toggle('border-brand-orange', active);
+        link.classList.toggle('text-brand-orange', !active);
+        link.classList.toggle('hover:bg-brand-orange/10', !active);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      });
+
+      const setStep = (
+        link: HTMLAnchorElement | null,
+        enabled: boolean,
+        target: number,
+      ) => {
+        if (!link) return;
+        link.setAttribute('aria-disabled', String(!enabled));
+        link.setAttribute('tabindex', enabled ? '0' : '-1');
+        link.setAttribute('href', enabled ? `?page=${target}` : '#');
+        link.classList.toggle('cursor-not-allowed', !enabled);
+        link.classList.toggle('border-gray-300', !enabled);
+        link.classList.toggle('text-gray-400', !enabled);
+        link.classList.toggle('border-brand-orange', enabled);
+        link.classList.toggle('text-brand-orange', enabled);
+        link.classList.toggle('hover:bg-brand-orange/10', enabled);
+      };
+
+      setStep(nav.querySelector('[data-page-prev]'), n > 1, n - 1);
+      setStep(nav.querySelector('[data-page-next]'), n < totalPages, n + 1);
+    };
+
+    show(page);
+  })();
+</script>

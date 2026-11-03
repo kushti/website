@@ -1,0 +1,171 @@
+---
+/**
+ * Contribute — the community page's take-part section: a display-size heading with the
+ * open-model note beside it, then developers on the left and companies (with the partner
+ * enquiry form) on the right. Markup and spacing follow the live page.
+ *
+ * The form is a mailto hand-off rather than a server-rendered POST. The archive has a
+ * `contact_requests` table, but it holds 544 rows of personal data that should not be
+ * republished, and the live site's own form posts to an endpoint that is not in the
+ * export; see docs/output-diff.md.
+ */
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const loc = normaliseLocale(locale);
+
+const FIELDS = [
+  { id: 'name', key: 'components.Sigmanauts.formInput.name', autocomplete: 'name' },
+  { id: 'email', key: 'components.Sigmanauts.formInput.email', autocomplete: 'email' },
+];
+
+/** production's arrow for the secondary (underlined) buttons is black, whatever the label */
+const arrow = (stroke: string) => `
+  <svg width="18" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 8h16M10 1l7 7-7 7" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+`;
+
+const DEVELOPER_LINKS = [
+  {
+    key: 'components.Sigmanauts.button.discord',
+    href: 'https://discord.gg/ergo-platform-668903786361651200',
+    external: true,
+    orange: false,
+  },
+  {
+    key: 'components.Sigmanauts.button.buttonContribute',
+    href: 'https://docs.ergoplatform.com/contribute/',
+    external: true,
+    orange: false,
+  },
+  {
+    key: 'components.Sigmanauts.button.writeAndReviewCode',
+    href: `/${loc}/discover/#DiscoverERG`,
+    external: false,
+    orange: true,
+  },
+  {
+    key: 'components.Sigmanauts.button.grantsAndBounties',
+    href: `/${loc}/discover/#GrantsAndBounties`,
+    external: false,
+    orange: false,
+  },
+];
+
+/** production bolds the last word of each column heading: "I am a **developer**" */
+function splitLastWord(text: string): [string, string] {
+  const i = text.lastIndexOf(' ');
+  return i === -1 ? ['', text] : [text.slice(0, i + 1), text.slice(i + 1)];
+}
+
+const title = t(loc, 'components.ContributeForm.title');
+const [devBefore, devBold] = splitLastWord(t(loc, 'components.ContributeForm.developer.title'));
+const [companyBefore, companyBold] = splitLastWord(
+  t(loc, 'components.ContributeForm.company.title'),
+);
+
+/** English's note bolds everything after "where"; other catalogues render it plain */
+const contributeText = t(loc, 'components.ContributeForm.text');
+const boldAt = contributeText.indexOf('where ');
+const contributeLead = boldAt === -1 ? contributeText : contributeText.slice(0, boldAt + 6);
+const contributeRest = boldAt === -1 ? '' : contributeText.slice(boldAt + 6);
+---
+
+<section id="Contribute" class="relative z-10 mx-auto max-w-[1300px] scroll-mt-24 px-4">
+  <div class="mb-20 flex flex-col lg:flex-row lg:justify-around">
+    <h1 class="display-120-bold mb-6 lg:my-auto" style="line-height: 1.5;">
+      <b>{title}</b>
+    </h1>
+    <p class="w-56 text-[#666666] lg:my-auto lg:w-72 dark:text-[#666666]">
+      {contributeLead}<b>{contributeRest}</b>
+    </p>
+  </div>
+
+  <div class="flex flex-col lg:flex-row">
+    <div class="flex flex-col lg:w-[608px] lg:shrink-0">
+      <h2 class="display-70 mb-6 max-w-[545px] leading-none">
+        {devBefore}<b>{devBold}</b>
+      </h2>
+      <p class="mb-8 text-sm text-[#666666] lg:text-[20px] lg:leading-[30px] dark:text-[#666666]">
+        <b>{t(loc, 'components.ContributeForm.developer.subTitle')}</b>
+      </p>
+
+      <div>
+        {
+          DEVELOPER_LINKS.map((link) => (
+            <div class="mb-10 ml-8">
+              <a
+                href={link.href}
+                {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                class:list={[
+                  'btn inline-flex items-center whitespace-nowrap rounded-full px-4 py-1 font-vinila-extended text-[14px] underline shadow-sm transition-transform duration-200 hover:scale-110 md:text-[16px]',
+                  link.orange ? 'text-brand-orange' : 'text-black dark:text-white',
+                ]}
+              >
+                <span class="leading-none">{t(loc, link.key)}</span>
+                <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true" set:html={arrow('#000')} />
+              </a>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="mt-16 flex flex-col lg:w-[660px]">
+      <h2 class="mb-6 max-w-[596px] text-[40px] leading-[1.1] md:text-[80px] lg:leading-none">
+        {companyBefore}<b>{companyBold}</b>
+      </h2>
+      <p class="mb-10 font-roboto text-sm text-[#666666] lg:text-[20px] lg:leading-[30px] dark:text-[#666666]">
+        {t(loc, 'components.ContributeForm.company.subTitle')}
+      </p>
+
+      <form
+        class="flex w-full flex-col"
+        method="post"
+        action={`mailto:team@ergoplatform.org?subject=${encodeURIComponent('Become an Ergo partner')}`}
+      >
+        {
+          FIELDS.map((f) => (
+            <input
+              id={f.id}
+              name={f.id}
+              type="text"
+              autocomplete={f.autocomplete}
+              required
+              placeholder={t(loc, f.key)}
+              class="input-shadow mb-6 rounded-xl px-6 py-4 dark:bg-[#303030]"
+            />
+          ))
+        }
+        <textarea
+          id="text"
+          name="text"
+          rows="4"
+          required
+          placeholder={t(loc, 'components.Sigmanauts.formInput.text')}
+          class="input-shadow rounded-xl px-6 py-4 dark:bg-[#303030]"></textarea>
+        <div class="mt-8 lg:mt-6">
+          <div class="float-right">
+            <button
+              type="submit"
+              class="btn inline-flex items-center whitespace-nowrap rounded-full bg-brand-orange px-4 py-1 font-vinila-extended text-[14px] text-black md:text-[16px]"
+            >
+              <span>{t(loc, 'components.Sigmanauts.formInput.button')}</span>
+              <span class="ml-2 flex h-5 w-5 items-center" aria-hidden="true" set:html={arrow('#fff')} />
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<style>
+  .input-shadow {
+    box-shadow: 0 4px 20px rgb(0 0 0 / 0.15);
+  }
+</style>

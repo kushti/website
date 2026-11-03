@@ -1,0 +1,91 @@
+---
+/**
+ * Production's own section artwork, as a responsive <picture>.
+ *
+ * Replaces the site's hexagon placeholder and CSS gradients, which were standing in for
+ * illustrations that turn out to be ordinary static files — see src/lib/artwork.ts and
+ * scripts/fetch-artwork.py for where they came from.
+ *
+ * Production uses avif/webp with a png fallback in most places, and a plain <img> pair
+ * chosen by the theme class in others. This takes an explicit `src` per format from the
+ * caller so the same component serves both cases.
+ *
+ * Decorative by default: none of this artwork carries text that matters, so alt is empty
+ * unless the caller sets it.
+ */
+import type { Art } from '../lib/artwork';
+
+interface Props {
+  art: Art;
+  /** avif/webp source, when production ships one for this file */
+  avif?: string;
+  /** override the intrinsic size, for the <img> attributes */
+  alt?: string;
+  /** rendered width in px; defaults to the intrinsic width */
+  width?: number;
+  class?: string;
+  /** position for the absolutely-positioned frames production uses */
+  position?: string;
+  eager?: boolean;
+}
+
+const { art, avif, alt = '', width, class: className = '', position, eager = false } = Astro.props;
+
+const w = width ?? art.width;
+const h = Math.round((w / art.width) * art.height);
+
+const sources = avif ? [avif, art.light] : [art.light];
+---
+
+{
+  sources.length > 1 ? (
+    <picture>
+      <source srcset={avif} type="image/avif" />
+      <img
+        src={art.light}
+        alt={alt}
+        width={w}
+        height={h}
+        decoding="async"
+        loading={eager ? 'eager' : 'lazy'}
+        class:list={['dark:hidden', className]}
+        style={position}
+      />
+      <img
+        src={art.dark ?? art.light}
+        alt=""
+        aria-hidden="true"
+        width={w}
+        height={h}
+        decoding="async"
+        loading={eager ? 'eager' : 'lazy'}
+        class:list={['hidden dark:block', className]}
+        style={position}
+      />
+    </picture>
+  ) : (
+    <>
+      <img
+        src={art.light}
+        alt={alt}
+        width={w}
+        height={h}
+        decoding="async"
+        loading={eager ? 'eager' : 'lazy'}
+        class:list={['dark:hidden', className]}
+        style={position}
+      />
+      <img
+        src={art.dark ?? art.light}
+        alt=""
+        aria-hidden="true"
+        width={w}
+        height={h}
+        decoding="async"
+        loading={eager ? 'eager' : 'lazy'}
+        class:list={['hidden dark:block', className]}
+        style={position}
+      />
+    </>
+  )
+}

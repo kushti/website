@@ -1,0 +1,241 @@
+---
+/**
+ * HIGHLIGHTS — the three flagship properties of the protocol.
+ *
+ * Production runs this as a carousel whose slide is the full 1268px measure: a hand-drawn
+ * chart in the left third, and the title, body, inline "Read More" link and large figure in
+ * the right two thirds. Reproduced as a scroll-snap track, so it works the same way without
+ * JavaScript. The charts are production's own SVGs, copied out of its DOM.
+ *
+ * This is the one home section whose copy is not in the CMS's i18n bundle, so
+ * scripts/recover-home.mjs reads it back out of the rendered page and it lives here.
+ */
+import { getCollection } from 'astro:content';
+import { normaliseLocale } from '../../i18n/config';
+import { t } from '../../i18n';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const loc = normaliseLocale(locale);
+
+const [file] = await getCollection('homeHighlights');
+const items = file?.data.items ?? [];
+
+const CHARTS = ['/artwork/highlight-1.svg', '/artwork/highlight-2.svg', '/artwork/highlight-3.svg'];
+
+/** production puts the link at the end of the body, after a line break; split it back out */
+const withoutCta = (body: string, cta?: string) =>
+  cta && body.endsWith(cta) ? body.slice(0, -cta.length).trimEnd() : body;
+---
+
+{
+  items.length > 0 && (
+    <section
+      id="Highlights"
+      class="relative isolate mt-8 min-h-0 scroll-mt-24 md:mt-40 lg:min-h-[300px]"
+    >
+      <div class="relative mx-auto w-full max-w-[1300px] p-4 lg:pb-16">
+        <div class="text-center">
+          <p class="text-sm leading-[1.5] font-bold text-[#585858] lg:text-xl dark:text-[#666666]">
+            {t(loc, 'components.highlights.title')}
+          </p>
+        </div>
+
+        <div class="highlight-track flex snap-x snap-mandatory overflow-x-auto">
+          {items.map((item, i) => (
+            <article class="w-full shrink-0 snap-start">
+              {/* desktop: chart in the left third, copy in the right two thirds */}
+              <div class="hidden lg:block">
+                <div class="mx-20 flex">
+                  <div class="flex w-1/3">
+                    {CHARTS[i] && (
+                      <img
+                        src={CHARTS[i]}
+                        alt=""
+                        width="562"
+                        height="562"
+                        loading="lazy"
+                        decoding="async"
+                        class="highlight-shadow my-auto h-96 w-auto"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </div>
+                  <div class="w-2/3">
+                    <h2
+                      class="display-96"
+                      style={
+                        item.title === 'Optional Privacy'
+                          ? 'line-height: 1.25; letter-spacing: -0.04em; white-space: nowrap'
+                          : 'line-height: 1.25'
+                      }
+                    >
+                      {item.title}
+                    </h2>
+                    {item.body && (
+                      <p class="mt-6 max-w-lg text-black dark:text-white">
+                        {withoutCta(item.body, item.cta?.text)}
+                        {item.cta && (
+                          <>
+                            <br />
+                            <a
+                              href={item.cta.href}
+                              class="font-bold text-black dark:text-white"
+                              {...(item.cta.href.startsWith('http')
+                                ? { target: '_blank', rel: 'noopener noreferrer' }
+                                : {})}
+                            >
+                              {item.cta.text}
+                            </a>
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {item.kicker && (
+                      <p class="display-56 mt-12 leading-none">
+                        {item.kicker.includes('% ') ? (
+                          <>
+                            {item.kicker.split('% ')[0]}%<br />
+                            {item.kicker.split('% ')[1]}
+                          </>
+                        ) : (
+                          item.kicker
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* mobile: title, chart, then the same copy */}
+              <div class="lg:hidden">
+                <p class="text-center font-display text-[40px] leading-tight">{item.title}</p>
+                <div class="flex h-72 items-center justify-center">
+                  {CHARTS[i] && (
+                    <img
+                      src={CHARTS[i]}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      class="highlight-shadow my-auto max-h-full w-auto object-contain"
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+                <div class="mx-8">
+                  {item.kicker && (
+                    <p class="display-32 leading-none">{item.kicker}</p>
+                  )}
+                  {item.body && (
+                    <p class="mt-3 text-base">
+                      {withoutCta(item.body, item.cta?.text)}
+                      {item.cta && (
+                        <>
+                          <br />
+                          <a
+                            href={item.cta.href}
+                            class="font-bold"
+                            {...(item.cta.href.startsWith('http')
+                              ? { target: '_blank', rel: 'noopener noreferrer' }
+                              : {})}
+                          >
+                            {item.cta.text}
+                          </a>
+                        </>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {/*
+          Production's carousel navigation. Measured at 1440: the buttons sit at the
+          container's vertical centre with their arrows at x 100 and x 1323, so the
+          overlay spans the padded container. Our track scroll-snaps instead of using
+          Swiper, so a few lines of script drive the same buttons.
+        */}
+        <div class="pointer-events-none absolute inset-0 hidden lg:block">
+          <button
+            type="button"
+            class="hl-prev pointer-events-auto absolute top-1/2 left-4 flex h-10 w-10 -translate-y-1/2 items-center justify-center "
+            aria-label="Previous"
+            disabled
+          >
+            <svg
+              width="18"
+              height="16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 rotate-180"
+              aria-hidden="true"
+            >
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#FF5E18"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="hl-next pointer-events-auto absolute top-1/2 right-4 flex h-10 w-10 -translate-y-1/2 items-center justify-center "
+            aria-label="Next"
+          >
+            <svg
+              width="18"
+              height="16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6"
+              aria-hidden="true"
+            >
+              <path
+                d="M1 8h16M10 1l7 7-7 7"
+                stroke="#FF5E18"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<script>
+  for (const track of document.querySelectorAll<HTMLElement>('.highlight-track')) {
+    const wrap = track.parentElement;
+    const prev = wrap?.querySelector<HTMLButtonElement>('.hl-prev');
+    const next = wrap?.querySelector<HTMLButtonElement>('.hl-next');
+    const step = () => track.clientWidth;
+    const sync = () => {
+      if (prev) prev.disabled = track.scrollLeft <= 4;
+      if (next) next.disabled = track.scrollLeft >= track.scrollWidth - track.clientWidth - 4;
+    };
+    prev?.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+    next?.addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
+    track.addEventListener('scroll', sync, { passive: true });
+    sync();
+  }
+</script>
+
+<style>
+  /* production's carousel has no visible scrollbar */
+  .highlight-track {
+    scrollbar-width: none;
+  }
+  .highlight-track::-webkit-scrollbar {
+    display: none;
+  }
+  .highlight-shadow {
+    filter: drop-shadow(0 4px 4px rgb(0 0 0 / 0.25));
+  }
+</style>
